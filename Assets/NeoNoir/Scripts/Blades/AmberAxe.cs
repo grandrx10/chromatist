@@ -11,9 +11,9 @@ namespace LightAndShadow
     /// splitting a long line through the floor toward the cursor.
     /// </summary>
     /// <remarks>
-    /// Model convention matches every blade: tip down local -Y, flat facing
-    /// local +Z. For an axe, the "tip" is the head end of the handle and the
-    /// flat is the cheek of the head. <see cref="flightRotation"/> and
+    /// Model convention: flat facing local +Z, but unlike the other blades
+    /// the axe is held head up, so its head is up local +Y and its handle
+    /// down -Y. The flat is the cheek of the head. <see cref="flightRotation"/> and
     /// <see cref="slamRotation"/> turn a model that sits differently.
     ///
     /// Primary. While the attack is held and the axe is in hand, it leaves
@@ -129,6 +129,45 @@ namespace LightAndShadow
         [Min(0f)]
         private float tremble = 0.05f;
 
+        [Header("Secondary: gather power")]
+        [SerializeField]
+        [Tooltip("Point the lines of power gather to, in the axe's own space. The head is up +Y.")]
+        private Vector3 gatherCentre = new Vector3(0f, 0.75f, 0f);
+
+        [SerializeField]
+        [Tooltip("Lines drawn in per second at the start of the charge, and at its end.")]
+        private Vector2 gatherRate = new Vector2(15f, 60f);
+
+        [SerializeField]
+        [Tooltip("Distance the lines start from the axe.")]
+        [Min(0.1f)]
+        private float gatherRadius = 2.5f;
+
+        [SerializeField]
+        [Tooltip("Length of a line when it starts in.")]
+        [Min(0.01f)]
+        private float gatherLineLength = 0.8f;
+
+        [SerializeField]
+        [Tooltip("Width of a line.")]
+        [Min(0.005f)]
+        private float gatherLineWidth = 0.05f;
+
+        [SerializeField]
+        [Tooltip("Seconds a line takes to reach the axe.")]
+        [Min(0.05f)]
+        private float gatherLineTime = 0.3f;
+
+        [SerializeField]
+        [Tooltip("Colour intensity of the lines. 1 is the effect material's own colour; above 1 blooms.")]
+        [Min(0f)]
+        private float gatherIntensity = 3f;
+
+        [SerializeField]
+        [Tooltip("Colour intensity of the axe's glow at full charge, in Amber's colour. Above 1 blooms.")]
+        [Min(0f)]
+        private float glowIntensity = 4f;
+
         [Header("Secondary: slam")]
         [SerializeField]
         [Tooltip("Seconds the axe takes to come down from overhead.")]
@@ -165,9 +204,24 @@ namespace LightAndShadow
 
         private enum SlamPhase { None, Charging, Swinging, Recovering }
 
+        private struct GatherLine
+        {
+            public Vector3 Direction;
+            public float Length;
+            public float Age;
+            public float Lifetime;
+        }
+
+        private const int MaxGatherLines = 128;
+
         private static readonly RaycastHit[] WallHits = new RaycastHit[16];
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int FadeId = Shader.PropertyToID("_Fade");
 
         private readonly HashSet<EnemyHealth> hitThisPass = new HashSet<EnemyHealth>();
+        private readonly List<GatherLine> gatherLines = new List<GatherLine>();
+        private readonly List<Vector3> gatherVertices = new List<Vector3>();
+        private readonly List<int> gatherTriangles = new List<int>();
 
         // Primary state.
         private Flight flight;
@@ -188,6 +242,19 @@ namespace LightAndShadow
         private float slamBlend;
         private Vector3 slamAim = Vector3.forward;
         private bool modifiersApplied;
+
+        // Charge effects. The lines live on their own object in world space,
+        // so they neither turn with the axe nor count as part of it.
+        private float gatherDebt;
+        private GameObject gatherHost;
+        private Mesh gatherMesh;
+        private MeshRenderer gatherRenderer;
+
+        private Renderer[] glowRenderers;
+        private Color[] glowBase;
+        private bool[] glowable;
+        private MaterialPropertyBlock glowBlock;
+        private bool glowing;
 
         private float Speed => throwSpeed * AttackSpeedMultiplier;
 
@@ -227,6 +294,7 @@ namespace LightAndShadow
             {
                 spin = Mathf.Repeat(spin + spinSpeed * deltaTime, 360f);
                 transform.SetPositionAndRotation(flightPosition, FlightRotation());
+                TickChargeEffects(deltaTime);
                 return;
             }
 
@@ -251,6 +319,7 @@ namespace LightAndShadow
             }
 
             transform.SetPositionAndRotation(position, rotation);
+            TickChargeEffects(deltaTime);
         }
 
         private float ThrowHeight()
@@ -510,7 +579,7 @@ namespace LightAndShadow
             Vector3 feet = new Vector3(ownerPosition.x, floor, ownerPosition.z);
 
             AmberSlam.Create(feet, slamAim, OwnerMiddleHeight(), OwnerMiddleHeight() + gripHeight - floor,
-                             -windup.y, slamEndAngle, slam, ResolvedEffectMaterial, amberColour);
+                             -windup.y, slamEndAngle, slam, ResolvedEffectMaterial);
         }
 
         /// <summary>
@@ -557,8 +626,223 @@ namespace LightAndShadow
                                         Mathf.PerlinNoise(time, time) - 0.5f) * (2f * tremble * strength);
             }
 
+            // The model's head is up its local +Y, so +Y follows the tip.
             Vector3 side = Vector3.Cross(Vector3.up, slamAim);
-            rotation = Quaternion.LookRotation(side, -tip) * Quaternion.Euler(slamRotation);
+            rotation = Quaternion.LookRotation(side, tip) * Quaternion.Euler(slamRotation);
+        }
+
+        // ---- charge effects -----------------------------------------------
+
+        /// <summary>After the axe has been posed this frame, so the effects follow where it is now.</summary>
+        private void TickChargeEffects(float deltaTime)
+        {
+            ApplyGlow(GlowAmount());
+            TickGather(deltaTime);
+        }
+
+        /// <summary>How hard the axe glows: building through the charge, full through the swing, dying away as it settles.</summary>
+        private float GlowAmount()
+        {
+            switch (slamPhase)
+            {
+                case SlamPhase.Charging:
+                    return Ease(chargeTime > 0f ? Mathf.Clamp01(slamClock / chargeTime) : 1f);
+
+                case SlamPhase.Swinging:
+                    return 1f;
+
+                case SlamPhase.Recovering:
+                    return recoverTime > 0f ? 1f - Mathf.Clamp01(slamClock / recoverTime) : 0f;
+
+                default:
+                    return 0f;
+            }
+        }
+
+        /// <summary>
+        /// Tints every part of the axe from its own colour toward Amber's,
+        /// past 1 so it blooms. Through the renderer's property block, so the
+        /// material is never edited and the dither fade is kept.
+        /// </summary>
+        private void ApplyGlow(float glow)
+        {
+            if (glowRenderers == null || (glow <= 0f && !glowing))
+            {
+                return;
+            }
+
+            // The last pass, at 0, puts the axe's own colours back.
+            glowing = glow > 0f;
+            Color hot = amberColour * glowIntensity;
+
+            for (int i = 0; i < glowRenderers.Length; i++)
+            {
+                Renderer target = glowRenderers[i];
+
+                if (target == null || !glowable[i])
+                {
+                    continue;
+                }
+
+                Color colour = Color.Lerp(glowBase[i], hot, glow);
+                colour.a = glowBase[i].a;
+
+                target.GetPropertyBlock(glowBlock);
+                glowBlock.SetColor(BaseColorId, colour);
+                target.SetPropertyBlock(glowBlock);
+            }
+        }
+
+        /// <summary>
+        /// Draws lines of power in toward the axe head while it charges, more
+        /// and more of them as it fills. Lines already on their way finish
+        /// even once the axe comes down.
+        /// </summary>
+        private void TickGather(float deltaTime)
+        {
+            if (slamPhase == SlamPhase.Charging)
+            {
+                float charged = chargeTime > 0f ? Mathf.Clamp01(slamClock / chargeTime) : 1f;
+                gatherDebt += Mathf.Lerp(gatherRate.x, gatherRate.y, charged) * deltaTime;
+
+                int count = Mathf.FloorToInt(gatherDebt);
+                gatherDebt -= count;
+
+                for (int i = 0; i < count && gatherLines.Count < MaxGatherLines; i++)
+                {
+                    // Flattened toward the floor's plane: a line coming
+                    // straight down at a top-down camera is only a dot.
+                    Vector3 direction = Random.onUnitSphere;
+                    direction.y *= 0.4f;
+
+                    gatherLines.Add(new GatherLine
+                    {
+                        Direction = direction.normalized,
+                        Length = gatherLineLength * Random.Range(0.6f, 1f),
+                        Lifetime = gatherLineTime * Random.Range(0.7f, 1f),
+                    });
+                }
+            }
+            else
+            {
+                gatherDebt = 0f;
+            }
+
+            for (int i = gatherLines.Count - 1; i >= 0; i--)
+            {
+                GatherLine line = gatherLines[i];
+                line.Age += deltaTime;
+
+                if (line.Age >= line.Lifetime)
+                {
+                    gatherLines.RemoveAt(i);
+                    continue;
+                }
+
+                gatherLines[i] = line;
+            }
+
+            BuildGather();
+        }
+
+        /// <summary>
+        /// Every live line as a strip turned to face the camera, speeding up
+        /// as it closes on the axe and shrinking into it on arrival.
+        /// </summary>
+        private void BuildGather()
+        {
+            if (gatherLines.Count == 0)
+            {
+                if (gatherRenderer != null)
+                {
+                    gatherRenderer.enabled = false;
+                }
+
+                return;
+            }
+
+            EnsureGatherHost();
+            gatherRenderer.enabled = true;
+
+            gatherVertices.Clear();
+            gatherTriangles.Clear();
+
+            Vector3 centre = transform.TransformPoint(gatherCentre);
+            Camera camera = ResolvedCamera;
+            Vector3 view = camera != null ? camera.transform.forward : Vector3.down;
+
+            foreach (GatherLine line in gatherLines)
+            {
+                float t = line.Age / line.Lifetime;
+
+                // Eased in: drifts in at first, then rushes the last stretch.
+                float near = gatherRadius * (1f - t * t);
+                float far = near + line.Length * (1f - t);
+
+                Vector3 side = Vector3.Cross(line.Direction, view);
+                if (side.sqrMagnitude < 0.0001f)
+                {
+                    side = Vector3.Cross(line.Direction, Vector3.up);
+                }
+
+                side = side.normalized * (gatherLineWidth * 0.5f * Mathf.Clamp01(t / 0.2f));
+
+                Vector3 inner = centre + line.Direction * near;
+                Vector3 outer = centre + line.Direction * far;
+
+                int at = gatherVertices.Count;
+                gatherVertices.Add(inner - side);
+                gatherVertices.Add(inner + side);
+                gatherVertices.Add(outer - side);
+                gatherVertices.Add(outer + side);
+
+                // Wound both ways, so it shows from either side.
+                gatherTriangles.AddRange(new[] { at, at + 2, at + 1, at + 1, at + 2, at + 3 });
+                gatherTriangles.AddRange(new[] { at, at + 1, at + 2, at + 1, at + 3, at + 2 });
+            }
+
+            gatherMesh.Clear();
+            gatherMesh.SetVertices(gatherVertices);
+            gatherMesh.SetTriangles(gatherTriangles, 0);
+            gatherMesh.RecalculateBounds();
+        }
+
+        private void EnsureGatherHost()
+        {
+            if (gatherHost != null)
+            {
+                return;
+            }
+
+            gatherHost = new GameObject("AmberGather");
+
+            gatherMesh = new Mesh { name = "Amber gather" };
+            gatherMesh.MarkDynamic();
+            gatherHost.AddComponent<MeshFilter>().sharedMesh = gatherMesh;
+
+            gatherRenderer = gatherHost.AddComponent<MeshRenderer>();
+            gatherRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            gatherRenderer.receiveShadows = false;
+
+            Material material = ResolvedEffectMaterial;
+            if (material == null)
+            {
+                return;
+            }
+
+            gatherRenderer.sharedMaterial = material;
+
+            // Brightness from scaling the material's own colour, never from
+            // editing it.
+            Color colour = material.HasProperty(BaseColorId) ? material.GetColor(BaseColorId) : amberColour;
+            float alpha = colour.a;
+            colour *= gatherIntensity;
+            colour.a = alpha;
+
+            MaterialPropertyBlock block = new MaterialPropertyBlock();
+            block.SetColor(BaseColorId, colour);
+            block.SetFloat(FadeId, 1f);
+            gatherRenderer.SetPropertyBlock(block);
         }
 
         private void ApplyChargeModifiers(bool on)
@@ -599,6 +883,25 @@ namespace LightAndShadow
 
         // ---- lifecycle ----------------------------------------------------
 
+        protected override void Awake()
+        {
+            base.Awake();
+
+            // Taken before the glow ever touches them, so these are the
+            // axe's own colours to come back to.
+            glowRenderers = GetComponentsInChildren<Renderer>(true);
+            glowBase = new Color[glowRenderers.Length];
+            glowable = new bool[glowRenderers.Length];
+            glowBlock = new MaterialPropertyBlock();
+
+            for (int i = 0; i < glowRenderers.Length; i++)
+            {
+                Material material = glowRenderers[i].sharedMaterial;
+                glowable[i] = material != null && material.HasProperty(BaseColorId);
+                glowBase[i] = glowable[i] ? material.GetColor(BaseColorId) : Color.white;
+            }
+        }
+
         protected override void OnSnap()
         {
             flight = Flight.Held;
@@ -615,6 +918,19 @@ namespace LightAndShadow
             slamPhase = SlamPhase.None;
             slamBlend = 0f;
             ApplyChargeModifiers(false);
+
+            ApplyGlow(0f);
+            gatherLines.Clear();
+            if (gatherRenderer != null)
+            {
+                gatherRenderer.enabled = false;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            Destroy(gatherHost);
+            Destroy(gatherMesh);
         }
     }
 }

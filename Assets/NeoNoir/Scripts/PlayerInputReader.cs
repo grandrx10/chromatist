@@ -54,6 +54,9 @@ namespace LightAndShadow
         /// <summary>True only on the frame the interact key (E) is pressed.</summary>
         public bool InteractPressed { get; private set; }
 
+        /// <summary>True only on the frame the swap key (R) is pressed: skip to the next secondary.</summary>
+        public bool SwapPressed { get; private set; }
+
         /// <summary>
         /// While true, every gameplay input reads as idle: no movement, dash,
         /// attack or interact. Set by dialogue and cutscenes. The pointer is
@@ -101,6 +104,7 @@ namespace LightAndShadow
             Vector2 move = Vector2.zero;
             bool dashPressed = false;
             bool interactPressed = false;
+            bool swapPressed = false;
 
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
@@ -112,6 +116,7 @@ namespace LightAndShadow
 
                 dashPressed |= keyboard.spaceKey.wasPressedThisFrame;
                 interactPressed = keyboard.eKey.wasPressedThisFrame;
+                swapPressed = keyboard.rKey.wasPressedThisFrame;
             }
 
             Gamepad gamepad = Gamepad.current;
@@ -149,12 +154,14 @@ namespace LightAndShadow
                 move = Vector2.zero;
                 dashPressed = false;
                 interactPressed = false;
+                swapPressed = false;
                 AttackHeld = false;
                 SecondaryPressed = false;
                 dashBufferRemaining = 0f;
             }
 
             InteractPressed = interactPressed;
+            SwapPressed = swapPressed;
             Move = Vector2.ClampMagnitude(move, 1f);
             MoveWorld = ToWorld(Move);
 

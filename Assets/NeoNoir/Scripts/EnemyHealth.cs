@@ -8,10 +8,14 @@ namespace LightAndShadow
     /// Hit points for an enemy. Takes damage, and dies at zero.
     /// </summary
     /// <remarks>
-    /// Deliberately knows nothing about what hit it or how the hit looks.
-    /// Weapons call <see cref="TakeDamage"/>; anything that wants to react --
-    /// a health bar, a death animation, a score counter -- listens to
+    /// Knows nothing about how a hit looks. Weapons call
+    /// <see cref="TakeDamage"/>; anything that wants to react -- a health
+    /// bar, a death animation, a score counter -- listens to
     /// <see cref="Damaged"/> and <see cref="Died"/>.
+    ///
+    /// The one thing it does know is which blade a blow came from, when the
+    /// weapon says: the killing blow's blade is told about the kill, after
+    /// <see cref="Died"/>, so it can play its own kill effect.
     /// </remarks>
     public sealed class EnemyHealth : MonoBehaviour
     {
@@ -140,8 +144,10 @@ namespace LightAndShadow
         /// <summary>
         /// Deals damage, scaled by any active vulnerability. Returns false if
         /// nothing happened -- already dead, or a non-positive amount.
+        /// <paramref name="source"/> is the blade the blow came from, directly
+        /// or through anything it made; if the blow kills, that blade is told.
         /// </summary>
-        public bool TakeDamage(float amount)
+        public bool TakeDamage(float amount, Blade source = null)
         {
             if (IsDead || amount <= 0f)
             {
@@ -156,6 +162,12 @@ namespace LightAndShadow
             if (IsDead)
             {
                 Died?.Invoke(this);
+
+                // Before the destroy, so the body is still there to play on.
+                if (source != null)
+                {
+                    source.ReportKill(this);
+                }
 
                 if (destroyOnDeath)
                 {

@@ -99,6 +99,7 @@ namespace LightAndShadow
         private Material material;
         private IReadOnlyList<GameObject> notePrefabs;
         private Action<BlueMark> burst;
+        private Blade source;
 
         private MaterialPropertyBlock block;
         private Color baseColour = Color.white;
@@ -118,25 +119,28 @@ namespace LightAndShadow
         /// <summary>
         /// Starts an empty mark under <paramref name="enemy"/>. Call
         /// <see cref="AddRing"/> to stack it. <paramref name="onBurst"/> is
-        /// called each time it bursts.
+        /// called each time it bursts. <paramref name="source"/> is the blade
+        /// that marked it, told if a burst kills.
         /// </summary>
         public static BlueMark Create(EnemyHealth enemy, Settings settings, Material material,
-                                      IReadOnlyList<GameObject> notePrefabs, Action<BlueMark> onBurst)
+                                      IReadOnlyList<GameObject> notePrefabs, Action<BlueMark> onBurst,
+                                      Blade source = null)
         {
             GameObject host = new GameObject("BlueMark");
             BlueMark mark = host.AddComponent<BlueMark>();
-            mark.Bind(enemy, settings, material, notePrefabs, onBurst);
+            mark.Bind(enemy, settings, material, notePrefabs, onBurst, source);
             return mark;
         }
 
         private void Bind(EnemyHealth enemy, Settings markSettings, Material markMaterial,
-                          IReadOnlyList<GameObject> prefabs, Action<BlueMark> onBurst)
+                          IReadOnlyList<GameObject> prefabs, Action<BlueMark> onBurst, Blade markSource)
         {
             target = enemy;
             settings = markSettings;
             material = markMaterial;
             notePrefabs = prefabs;
             burst = onBurst;
+            source = markSource;
 
             // Sized to the body once. Enemies do not change size.
             Vector3 extents = enemy.BodyBounds().extents;
@@ -196,7 +200,7 @@ namespace LightAndShadow
 
             BlueBurst.Play(body.center, transform.position, outer, settings.burst, material, notePrefabs);
 
-            target.TakeDamage(settings.burstDamage);
+            target.TakeDamage(settings.burstDamage, source);
             burst?.Invoke(this);
         }
 

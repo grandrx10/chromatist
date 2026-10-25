@@ -22,7 +22,7 @@ namespace LightAndShadow
     public sealed class SlashEffect : MonoBehaviour
     {
         /// <summary>Must match NEONOIR_MAX_SLASHES in NeoNoirEdges.shader.</summary>
-        public const int MaxConcurrent = 4;
+        public const int MaxConcurrent = 16;
 
         [Header("Power")]
         [SerializeField]

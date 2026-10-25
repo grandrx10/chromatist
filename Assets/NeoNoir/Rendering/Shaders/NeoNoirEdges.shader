@@ -136,7 +136,7 @@ Shader "NeoNoir/Edges"
             // ---- slash frames -------------------------------------------
             // Set globally from SlashEffect.cs, same as the impacts. Unset,
             // the strength is 0 and nothing draws.
-            #define NEONOIR_MAX_SLASHES 4
+            #define NEONOIR_MAX_SLASHES 16
 
             float4 _NeoNoirSlashes[NEONOIR_MAX_SLASHES]; // xy = UV centre, z = progress (<0 inactive), w = angle (radians)
             float _NeoNoirSlashSteps;

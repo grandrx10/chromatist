@@ -26,14 +26,19 @@ namespace LightAndShadow
         /// where the attack arrived from. <paramref name="slashTint"/> colours
         /// the slash effect; black leaves it the plain inversion. Pass false
         /// for <paramref name="slashEffect"/> for an attack that draws its own
-        /// hit effect instead.
+        /// hit effect instead. <paramref name="slashCount"/> slashes, each
+        /// <paramref name="slashScale"/> times normal size, fire together on
+        /// every enemy hit, fanned across a half turn so they cross.
+        /// <paramref name="source"/> is the blade the attack belongs to, told
+        /// about any kill.
         /// Returns the total health actually taken off, which is less than
         /// damage times hits when a blow kills -- what lifesteal heals from.
         /// </summary>
         public static float Sweep(Vector3 start, Vector3 end, float radius, float damage,
                                   Vector3 direction, HashSet<EnemyHealth> alreadyHit,
                                   Action<EnemyHealth, Vector3> onHit = null,
-                                  Color slashTint = default, bool slashEffect = true)
+                                  Color slashTint = default, bool slashEffect = true,
+                                  int slashCount = 1, float slashScale = 1f, Blade source = null)
         {
             Collider[] overlaps = Physics.OverlapCapsule(start, end, radius, ~0, QueryTriggerInteraction.Ignore);
             float dealt = 0f;
@@ -51,12 +56,16 @@ namespace LightAndShadow
                 Vector3 point = overlap.ClosestPointOnBounds(end);
 
                 float before = enemy.CurrentHealth;
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, source);
                 dealt += before - enemy.CurrentHealth;
 
                 if (slashEffect && SlashEffect.Current != null)
                 {
-                    SlashEffect.Current.TriggerSlash(point, direction, 1f, slashTint);
+                    for (int i = 0; i < slashCount; i++)
+                    {
+                        Vector3 cut = Quaternion.AngleAxis(180f * i / slashCount, Vector3.up) * direction;
+                        SlashEffect.Current.TriggerSlash(point, cut, slashScale, slashTint);
+                    }
                 }
 
                 onHit?.Invoke(enemy, start);

@@ -17,11 +17,12 @@ namespace LightAndShadow
     /// The grey is real grey. The bar is on an overlay canvas, drawn after the
     /// two-tone threshold, so it is never crushed to black or white.
     ///
-    /// The white fill always jumps straight to the true health; only the grey
-    /// lags behind, so the bar never lies about how much health is left. Each
-    /// new hit restarts the pause before the grey drains, so a burst of hits
-    /// builds up one long grey chunk that then drains all at once. Healing
-    /// pulls the grey up with the fill at once -- there is nothing to drain.
+    /// On a hit the white fill jumps straight down to the true health; only
+    /// the grey lags behind, so the bar never shows more health than is left.
+    /// Each new hit restarts the pause before the grey drains, so a burst of
+    /// hits builds up one long grey chunk that then drains all at once.
+    /// Healing eases the fill up to the new health instead, and the grey rises
+    /// with it -- there is nothing to drain.
     ///
     /// Read every frame rather than from PlayerHealth's events. It costs
     /// nothing, and it never shows a stale value when the bar wakes up before
@@ -52,6 +53,12 @@ namespace LightAndShadow
         [Min(0.01f)]
         private float drainSpeed = 6f;
 
+        [Header("Heal")]
+        [SerializeField]
+        [Tooltip("How quickly the fill eases up to the new health when healed. Higher is faster.")]
+        [Min(0.01f)]
+        private float healSpeed = 6f;
+
         private float shown = -1f;
         private float drained = -1f;
         private float holdRemaining;
@@ -70,23 +77,36 @@ namespace LightAndShadow
 
             float fraction = health != null ? Mathf.Clamp01(health.Fraction) : 1f;
 
+            float target = fraction;
+
             if (shown < 0f)
             {
-                // First frame: start settled, nothing to drain.
+                // First frame: start settled, nothing to drain or fill.
                 drained = fraction;
             }
             else if (fraction < shown)
             {
+                // Hurt: straight down, even partway through easing up.
                 holdRemaining = drainDelay;
             }
-
-            if (!Mathf.Approximately(fraction, shown))
+            else if (fraction > shown)
             {
-                shown = fraction;
-                SetWidth(fill, fraction);
+                target = Mathf.Lerp(shown, fraction, 1f - Mathf.Exp(-healSpeed * Time.deltaTime));
+
+                // An ease never quite arrives on its own; snap the last sliver.
+                if (fraction - target < 0.001f)
+                {
+                    target = fraction;
+                }
             }
 
-            UpdateDrain(fraction);
+            if (!Mathf.Approximately(target, shown))
+            {
+                shown = target;
+                SetWidth(fill, target);
+            }
+
+            UpdateDrain(shown);
         }
 
         private void UpdateDrain(float fraction)

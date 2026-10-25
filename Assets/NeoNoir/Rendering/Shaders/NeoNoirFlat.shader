@@ -41,10 +41,11 @@ Shader "NeoNoir/Flat"
         // script (blades fading in and out of rotation) rather than set here.
         _Fade ("Fade", Range(0, 1)) = 1
 
-        // Camera occlusion crossfade, 1 fully solid. Below 1 the surface leaves
-        // the main frame and draws only through the NeoNoirOccluder pass,
-        // which the edge pass blends over the scene. The shadow caster ignores
-        // it, so dissolved scenery still throws its shadow. Driven from
+        // Camera occlusion crossfade, 1 fully solid. Below 1 a hole opens in
+        // the surface around the player: the part inside it leaves the main
+        // frame and draws only through the NeoNoirOccluder pass, which the
+        // edge pass blends over the scene. The shadow caster ignores it, so
+        // cut scenery still throws its whole shadow. Driven from
         // OccluderFader; never set on the material.
         [HideInInspector] _OcclusionFade ("Occlusion Fade", Range(0, 1)) = 1
     }
@@ -100,12 +101,53 @@ Shader "NeoNoir/Flat"
             clip(fade - threshold);
         }
 
-        // Every main-frame pass. Mid-fade occluders are removed outright, not
-        // stippled -- the occluder layer draws them instead. The shadow caster
-        // calls NeoNoirFadeClipBy with _Fade alone, so it keeps the shadow.
-        void NeoNoirFadeClip(float4 positionCS)
+        // Camera occlusion hole, set globally by OccluderFader. xyz is the
+        // world point that must stay visible, w the hole's radius in world
+        // units at that point's distance from the camera.
+        float4 _NeoNoirOcclusionTarget;
+        float  _NeoNoirOcclusionSoftness;
+
+        // How solid an occluder is at this pixel, 1 fully. Only a round hole
+        // around the target, as seen from the camera, is cut away -- and
+        // only where the surface is nearer the camera than the target, so
+        // the rest of a wall, and any of it behind the player, stays put.
+        // The hole opens as _OcclusionFade falls from 1 to 0.
+        float NeoNoirOcclusionVisibility(float3 positionVS)
         {
-            clip(_OcclusionFade >= 1.0 ? 1.0 : -1.0);
+            if (_OcclusionFade >= 1.0)
+            {
+                return 1.0;
+            }
+
+            float3 targetVS = TransformWorldToView(_NeoNoirOcclusionTarget.xyz);
+            float depth = -positionVS.z;
+            float targetDepth = -targetVS.z;
+
+            if (depth >= targetDepth)
+            {
+                return 1.0;
+            }
+
+            // Measured on screen, scaled to world units at the target's
+            // distance: under perspective, near surfaces are projected first.
+            float2 offset = unity_OrthoParams.w > 0.5
+                ? positionVS.xy - targetVS.xy
+                : (positionVS.xy / max(depth, 0.0001) - targetVS.xy / max(targetDepth, 0.0001)) * targetDepth;
+
+            float radius = _NeoNoirOcclusionTarget.w;
+            // Kept off zero: smoothstep with equal edges divides by zero.
+            float softness = max(_NeoNoirOcclusionSoftness, 0.0001);
+            float outside = smoothstep(radius - softness, radius, length(offset));
+            return lerp(outside, 1.0, _OcclusionFade);
+        }
+
+        // Every main-frame pass. The part of an occluder inside the hole is
+        // removed outright, not stippled -- the occluder layer draws it
+        // instead. The shadow caster calls NeoNoirFadeClipBy with _Fade
+        // alone, so it keeps the whole shadow.
+        void NeoNoirFadeClip(float4 positionCS, float3 positionVS)
+        {
+            clip(NeoNoirOcclusionVisibility(positionVS) >= 1.0 ? 1.0 : -1.0);
             NeoNoirFadeClipBy(positionCS, _Fade);
         }
         ENDHLSL
@@ -167,6 +209,7 @@ Shader "NeoNoir/Flat"
                 #ifdef NEONOIR_NEEDS_NORMAL
                     float3 normalWS   : TEXCOORD1;
                 #endif
+                float3 positionVS : TEXCOORD2;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -180,6 +223,7 @@ Shader "NeoNoir/Flat"
 
                 VertexPositionInputs positions = GetVertexPositionInputs(input.positionOS.xyz);
                 output.positionCS = positions.positionCS;
+                output.positionVS = positions.positionVS;
 
                 #ifdef NEONOIR_NEEDS_LIGHTING
                     output.positionWS = positions.positionWS;
@@ -196,7 +240,7 @@ Shader "NeoNoir/Flat"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                NeoNoirFadeClip(input.positionCS);
+                NeoNoirFadeClip(input.positionCS, input.positionVS);
 
                 #ifdef NEONOIR_BYPASS
                     // Authoring view. Ignores _BaseColor entirely and shades by
@@ -338,6 +382,7 @@ Shader "NeoNoir/Flat"
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
+                float3 positionVS : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -348,7 +393,10 @@ Shader "NeoNoir/Flat"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionCS = TransformWorldToHClip(positionWS);
+                output.positionVS = TransformWorldToView(positionWS);
                 return output;
             }
 
@@ -356,7 +404,7 @@ Shader "NeoNoir/Flat"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                NeoNoirFadeClip(input.positionCS);
+                NeoNoirFadeClip(input.positionCS, input.positionVS);
                 return 0;
             }
             ENDHLSL
@@ -396,6 +444,7 @@ Shader "NeoNoir/Flat"
             {
                 float4 positionCS : SV_POSITION;
                 float3 normalWS   : TEXCOORD0;
+                float3 positionVS : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -407,7 +456,9 @@ Shader "NeoNoir/Flat"
                 UNITY_TRANSFER_INSTANCE_ID(input, output);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
-                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
+                output.positionCS = TransformWorldToHClip(positionWS);
+                output.positionVS = TransformWorldToView(positionWS);
                 output.normalWS = NormalizeNormalPerVertex(GetVertexNormalInputs(input.normalOS).normalWS);
                 return output;
             }
@@ -416,7 +467,7 @@ Shader "NeoNoir/Flat"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                NeoNoirFadeClip(input.positionCS);
+                NeoNoirFadeClip(input.positionCS, input.positionVS);
 
                 #if defined(_GBUFFER_NORMALS_OCT)
                     float3 normalWS = normalize(input.normalWS);
@@ -464,7 +515,7 @@ Shader "NeoNoir/Flat"
             {
                 float4 positionCS : SV_POSITION;
                 float3 normalWS   : TEXCOORD0;
-                float  eyeDepth   : TEXCOORD1;
+                float3 positionVS : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -486,9 +537,7 @@ Shader "NeoNoir/Flat"
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 
-                // View-space distance, which is what NeoNoirEyeDepth returns in
-                // the edge pass for both perspective and orthographic.
-                output.eyeDepth = -TransformWorldToView(positionWS).z;
+                output.positionVS = TransformWorldToView(positionWS);
                 return output;
             }
 
@@ -497,13 +546,19 @@ Shader "NeoNoir/Flat"
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-                // Fully gone at 0; and fully solid surfaces are drawn by the
-                // main frame, so they never belong here.
-                clip(_OcclusionFade > 0.001 && _OcclusionFade < 1.0 ? 1.0 : -1.0);
+                // Fully gone at 0; and fully solid pixels -- everything
+                // outside the hole -- are drawn by the main frame, so they
+                // never belong here.
+                float visibility = NeoNoirOcclusionVisibility(input.positionVS);
+                clip(visibility > 0.001 && visibility < 1.0 ? 1.0 : -1.0);
                 NeoNoirFadeClipBy(input.positionCS, _Fade);
 
+                // View-space distance, which is what NeoNoirEyeDepth returns in
+                // the edge pass for both perspective and orthographic.
+                float eyeDepth = -input.positionVS.z;
+
                 Targets output;
-                output.data = float4(PackNormalOctQuadEncode(normalize(input.normalWS)), input.eyeDepth, _OcclusionFade);
+                output.data = float4(PackNormalOctQuadEncode(normalize(input.normalWS)), eyeDepth, visibility);
                 output.colour = _BaseColor;
                 return output;
             }

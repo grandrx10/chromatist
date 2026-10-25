@@ -149,6 +149,26 @@ namespace LightAndShadow
         [Header("Secondary: petals")]
         [SerializeField] private RosePetal.Settings petals = new RosePetal.Settings();
 
+        [Header("Kill")]
+        [SerializeField]
+        [Tooltip("Petals flung out from an enemy Rose kills, by any of her attacks.")]
+        [Range(0, 64)]
+        private int killPetals = 18;
+
+        [SerializeField]
+        private RosePetal.Settings killPetal = new RosePetal.Settings
+        {
+            size = new Vector2(0.14f, 0.26f),
+            scatter = 0.3f,
+            burstSpeed = 3f,
+            carrySpeed = 4f,
+            drag = 3.5f,
+            fallSpeed = 0.3f,
+            floatTime = 0.6f,
+            floatJitter = 0.5f,
+            fadeTime = 0.7f,
+        };
+
         [Header("Visuals")]
         [SerializeField]
         [Tooltip("Base material for the slashes and the dash trail. Empty uses the rapier's own. It is copied and tinted, never edited.")]
@@ -240,8 +260,7 @@ namespace LightAndShadow
 
                 if (source == null)
                 {
-                    Renderer own = GetComponentInChildren<Renderer>();
-                    source = own != null ? own.sharedMaterial : null;
+                    source = OwnMaterial;
                 }
 
                 if (source == null)
@@ -283,13 +302,7 @@ namespace LightAndShadow
         {
             get
             {
-                if (petalMaterial != null)
-                {
-                    return petalMaterial;
-                }
-
-                Renderer own = GetComponentInChildren<Renderer>();
-                return own != null ? own.sharedMaterial : null;
+                return petalMaterial != null ? petalMaterial : OwnMaterial;
             }
         }
 
@@ -453,7 +466,7 @@ namespace LightAndShadow
             // across the cursor: from the right it curves left, and vice versa.
             Vector3 heading = Quaternion.AngleAxis(side * launchAngle, Vector3.up) * aim;
 
-            RapierSlash spawned = RapierSlash.Spawn(origin, heading, cursorPoint, slash, ResolvedSlashMaterial, OnSlashHit, RoseColour);
+            RapierSlash spawned = RapierSlash.Spawn(origin, heading, cursorPoint, slash, ResolvedSlashMaterial, OnSlashHit, RoseColour, this);
             Tint(spawned.GetComponent<TrailRenderer>());
         }
 
@@ -465,10 +478,16 @@ namespace LightAndShadow
             }
         }
 
+        /// <summary>A burst of petals from the body.</summary>
+        protected override void OnKill(EnemyHealth enemy, Bounds body)
+        {
+            RosePetal.Scatter(body.center, killPetals, killPetal, ResolvedPetalMaterial);
+        }
+
         /// <summary>Each enemy is reported once per dash, so each gets one flurry.</summary>
         private void OnDashHit(EnemyHealth enemy, Vector3 arrivalPoint)
         {
-            SlashFlurry.Play(enemy, slash.damage, dashFlurry, RoseColour);
+            SlashFlurry.Play(enemy, slash.damage, dashFlurry, RoseColour, this);
         }
 
         /// <summary>
@@ -486,7 +505,7 @@ namespace LightAndShadow
 
                 if (!markByEnemy.TryGetValue(enemy, out RoseMark mark) || mark == null)
                 {
-                    markByEnemy[enemy] = RoseMark.Create(enemy, marks, ResolvedPetalMaterial);
+                    markByEnemy[enemy] = RoseMark.Create(enemy, marks, ResolvedPetalMaterial, this);
                 }
             }
 
@@ -662,7 +681,8 @@ namespace LightAndShadow
                 dashBlend = Mathf.MoveTowards(dashBlend, 1f, deltaTime / 0.04f);
 
                 Vector3 point = MiddlePoint();
-                BladeDamage.Sweep(lastTrailPoint, point, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour);
+                BladeDamage.Sweep(lastTrailPoint, point, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
+                                  source: this);
                 ShedPetals(lastTrailPoint, point);
                 lastTrailPoint = point;
 
@@ -697,7 +717,8 @@ namespace LightAndShadow
 
             // The line the player just cut still hurts anything that steps
             // into it, until it fades.
-            BladeDamage.Sweep(trailStart, trailEnd, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour);
+            BladeDamage.Sweep(trailStart, trailEnd, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
+                              source: this);
 
             lingerRemaining -= deltaTime;
 

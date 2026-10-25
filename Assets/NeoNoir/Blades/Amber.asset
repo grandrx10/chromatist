@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3edc714e49b9b3646b4233bdc4fc3496, type: 3}
   m_Name: Amber
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.BladeDefinition
-  displayName: Luna
-  prefab: {fileID: 2940014144191968989, guid: a700efaaf9f895a428304798fbde57b4, type: 3}
+  displayName: Amber
+  prefab: {fileID: 4390818314852874420, guid: 14f87bb7d067af54a9f26c5054cd4157, type: 3}
   secondaryCooldown: 3

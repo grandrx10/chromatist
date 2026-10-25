@@ -103,7 +103,7 @@ namespace LightAndShadow
             // Read before damaging: a killing blow destroys the enemy.
             Vector3 point = other.ClosestPointOnBounds(transform.position);
 
-            enemy.TakeDamage(damage);
+            enemy.TakeDamage(damage, blade);
 
             SlashEffect effect = slashEffect != null ? slashEffect : SlashEffect.Current;
 

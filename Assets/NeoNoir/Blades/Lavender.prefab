@@ -96,7 +96,7 @@ MonoBehaviour:
   attacksPerSecond: 2
   drawTime: 0.4
   arrow:
-    damage: 8
+    damage: 10
     speed: 30
     range: 30
     radius: 0.15

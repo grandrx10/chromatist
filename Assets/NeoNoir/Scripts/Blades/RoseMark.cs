@@ -86,6 +86,7 @@ namespace LightAndShadow
         private Collider targetCollider;
         private Settings settings;
         private Material material;
+        private Blade source;
 
         private Mesh mesh;
         private MeshRenderer meshRenderer;
@@ -106,20 +107,25 @@ namespace LightAndShadow
 
         private float MiddleRadius => (innerRadius + outerRadius) * 0.5f;
 
-        /// <summary>Paints a mark round <paramref name="enemy"/>. It removes itself when the enemy dies or is destroyed.</summary>
-        public static RoseMark Create(EnemyHealth enemy, Settings settings, Material material)
+        /// <summary>
+        /// Paints a mark round <paramref name="enemy"/>. It removes itself when
+        /// the enemy dies or is destroyed. <paramref name="source"/> is the
+        /// blade that marked it, told if the mark's flurry kills.
+        /// </summary>
+        public static RoseMark Create(EnemyHealth enemy, Settings settings, Material material, Blade source = null)
         {
             GameObject host = new GameObject("RoseMark");
             RoseMark mark = host.AddComponent<RoseMark>();
-            mark.Bind(enemy, settings, material);
+            mark.Bind(enemy, settings, material, source);
             return mark;
         }
 
-        private void Bind(EnemyHealth enemy, Settings markSettings, Material markMaterial)
+        private void Bind(EnemyHealth enemy, Settings markSettings, Material markMaterial, Blade markSource)
         {
             target = enemy;
             settings = markSettings;
             material = markMaterial;
+            source = markSource;
             targetCollider = enemy.GetComponentInChildren<Collider>();
 
             // Sized to the collider once. Enemies do not change size.
@@ -230,7 +236,7 @@ namespace LightAndShadow
 
             ApplyVisuals();
 
-            SlashFlurry.Play(target, damagePerStrike, settings.flurry, baseColour);
+            SlashFlurry.Play(target, damagePerStrike, settings.flurry, baseColour, source);
         }
 
         private void LateUpdate()

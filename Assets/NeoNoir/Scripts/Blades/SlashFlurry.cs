@@ -33,6 +33,7 @@ namespace LightAndShadow
         private Settings settings;
         private float damage;
         private Color tint;
+        private Blade source;
         private int remaining;
         private float wait;
         private float yaw;
@@ -41,9 +42,11 @@ namespace LightAndShadow
         /// Starts a flurry on <paramref name="enemy"/>, each slash dealing
         /// <paramref name="damagePerStrike"/>. The first lands at once.
         /// <paramref name="effectTint"/> colours the slash effects; black
-        /// leaves them the plain inversion.
+        /// leaves them the plain inversion. <paramref name="source"/> is the
+        /// blade the flurry belongs to, told if it kills.
         /// </summary>
-        public static void Play(EnemyHealth enemy, float damagePerStrike, Settings settings, Color effectTint = default)
+        public static void Play(EnemyHealth enemy, float damagePerStrike, Settings settings, Color effectTint = default,
+                                Blade source = null)
         {
             if (enemy == null || enemy.IsDead)
             {
@@ -56,6 +59,7 @@ namespace LightAndShadow
             flurry.settings = settings;
             flurry.damage = damagePerStrike;
             flurry.tint = effectTint;
+            flurry.source = source;
             flurry.remaining = settings.strikes;
             flurry.yaw = Random.Range(0f, 360f);
             flurry.Step(0f);
@@ -104,7 +108,7 @@ namespace LightAndShadow
             Vector3 point = bounds.center + jitter;
 
             // Before damaging: a killing blow destroys the enemy.
-            target.TakeDamage(damage);
+            target.TakeDamage(damage, source);
 
             if (SlashEffect.Current != null)
             {

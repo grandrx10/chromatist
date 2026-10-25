@@ -155,6 +155,26 @@ namespace LightAndShadow
         [Min(0.01f)]
         private float hoverEngageTime = 0.15f;
 
+        [Header("Kill")]
+        [SerializeField]
+        [Tooltip("Lotus petals flung out from an enemy Sage kills, by any of her attacks.")]
+        [Range(0, 64)]
+        private int killPetals = 16;
+
+        [SerializeField]
+        private RosePetal.Settings killPetal = new RosePetal.Settings
+        {
+            size = new Vector2(0.16f, 0.3f),
+            scatter = 0.3f,
+            burstSpeed = 3f,
+            carrySpeed = 3.5f,
+            drag = 4f,
+            fallSpeed = 0.3f,
+            floatTime = 0.5f,
+            floatJitter = 0.5f,
+            fadeTime = 0.6f,
+        };
+
         [Header("Visuals")]
         [SerializeField]
         [Tooltip("Material for the lotuses, rings and petals, normally NeoNoir/Flat in Sage's colour. Empty uses the scepter's own.")]
@@ -196,18 +216,20 @@ namespace LightAndShadow
         public override bool Lingering => Hovering;
 
         /// <summary>The effect material, or the scepter's own when none is set. Never copied or edited.</summary>
-        private Material ResolvedEffectMaterial
-        {
-            get
-            {
-                if (effectMaterial != null)
-                {
-                    return effectMaterial;
-                }
+        private Material ResolvedEffectMaterial => effectMaterial != null ? effectMaterial : OwnMaterial;
 
-                Renderer own = GetComponentInChildren<Renderer>();
-                return own != null ? own.sharedMaterial : null;
-            }
+        /// <summary>A burst of lotus petals from the body.</summary>
+        protected override void OnKill(EnemyHealth enemy, Bounds body)
+        {
+            RosePetal.Scatter(body.center, killPetals, killPetal, ResolvedEffectMaterial);
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+
+            // While the scepter is being equipped, not mid-fight.
+            SageLotus.Prewarm(lotusModel);
         }
 
         protected override void Tick(Vector3 orbitPosition, Quaternion orbitRotation, float deltaTime)
@@ -338,7 +360,7 @@ namespace LightAndShadow
             }
 
             Vector3 floorPoint = new Vector3(ownerPosition.x + offset.x, Floor(), ownerPosition.z + offset.z);
-            SageLotus.Plant(floorPoint, lotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour);
+            SageLotus.Plant(floorPoint, lotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour, this);
 
             flick = 1f;
         }
@@ -399,7 +421,7 @@ namespace LightAndShadow
             float step = trailPlaced == 0 ? trailStartDistance : trailSpacing;
             trailHead += trailHeading * step;
 
-            SageLotus.Plant(trailHead, trailLotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour);
+            SageLotus.Plant(trailHead, trailLotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour, this);
             trailPlaced++;
 
             if (trailPlaced >= trailCount)

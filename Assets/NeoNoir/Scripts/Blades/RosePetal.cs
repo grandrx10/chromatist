@@ -85,6 +85,22 @@ namespace LightAndShadow
         private float age;
 
         /// <summary>
+        /// Flings <paramref name="count"/> petals out from <paramref name="centre"/>
+        /// all the way round, evenly spaced with a little jitter so the burst
+        /// is full without looking stamped out.
+        /// </summary>
+        public static void Scatter(Vector3 centre, int count, Settings settings, Material material)
+        {
+            float offset = UnityEngine.Random.Range(0f, 360f);
+
+            for (int i = 0; i < count; i++)
+            {
+                float yaw = offset + 360f * i / count + UnityEngine.Random.Range(-15f, 15f);
+                Spawn(centre, Quaternion.Euler(0f, yaw, 0f) * Vector3.forward, settings, material);
+            }
+        }
+
+        /// <summary>
         /// Sheds a petal near <paramref name="origin"/>, carried on along
         /// <paramref name="forward"/>.
         /// </summary>

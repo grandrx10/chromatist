@@ -118,8 +118,8 @@ namespace LightAndShadow
             [Tooltip("Turn the notes to face the camera. Off lays them flat on the wall, facing out.")]
             public bool staffNotesFaceCamera;
 
-            [Tooltip("Degrees to turn the note models by, if they do not face -Z (toward the viewer) as modelled.")]
-            public Vector3 staffNoteRotation;
+            [Tooltip("Degrees to turn the note models by, on top of facing out from the wall. The note prefabs are modelled a quarter turn round on Y from -Z, so the default turns them back.")]
+            public Vector3 staffNoteRotation = new Vector3(0f, 90f, 0f);
 
             [Header("Mana lines")]
             [Tooltip("Lines rising off the ring per second.")]

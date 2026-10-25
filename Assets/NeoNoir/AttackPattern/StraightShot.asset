@@ -13,7 +13,13 @@ MonoBehaviour:
   m_Name: StraightShot
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.AimedShotPattern
   delayAfter: 5
+  attackAnimation: GuardAttack
+  movement:
+    type: 1
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
   projectilePrefab: {fileID: 4683515996178420819, guid: b87fbe5bbdc79134787226b476b138e5, type: 3}
-  turnSpeed: 360
-  aimTolerance: 3
-  maxTurnTime: 1
+  windup: 1
+  recovery: 0.5

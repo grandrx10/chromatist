@@ -34691,7 +34691,6 @@ GameObject:
   - component: {fileID: 8752620854031080444}
   - component: {fileID: 1836544661855991354}
   - component: {fileID: 9065801738202770392}
-  - component: {fileID: 940297820174421343}
   m_Layer: 0
   m_Name: Arch
   m_TagString: Untagged
@@ -35497,28 +35496,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5940102760983352895}
   m_Mesh: {fileID: 0}
---- !u!64 &940297820174421343
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5940102760983352895}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!1 &7586703005389307923
 GameObject:
   m_ObjectHideFlags: 0
@@ -35532,7 +35509,6 @@ GameObject:
   - component: {fileID: 3232226414779538286}
   - component: {fileID: 6694082608126488118}
   - component: {fileID: 2825751453567000730}
-  - component: {fileID: 5776267727841408649}
   m_Layer: 0
   m_Name: Cone
   m_TagString: Untagged
@@ -35992,28 +35968,6 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7586703005389307923}
-  m_Mesh: {fileID: 0}
---- !u!64 &5776267727841408649
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7586703005389307923}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
   m_Mesh: {fileID: 0}
 --- !u!1 &9176881393662646387
 GameObject:

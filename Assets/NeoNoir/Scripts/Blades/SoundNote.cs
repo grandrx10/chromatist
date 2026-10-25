@@ -67,6 +67,7 @@ namespace LightAndShadow
         private Settings settings;
         private LayerMask obstacles;
         private Action<EnemyHealth, Vector3> onHit;
+        private Blade source;
 
         private Vector3 position;
         private Vector3 direction;
@@ -82,13 +83,16 @@ namespace LightAndShadow
         /// Fires the note from <paramref name="origin"/> along
         /// <paramref name="flightDirection"/>. <paramref name="hit"/> is called
         /// after the note has dealt its damage to an enemy that survived it.
+        /// <paramref name="shooter"/> is the blade that played it, told if it
+        /// kills.
         /// </summary>
         public void Launch(Vector3 origin, Vector3 flightDirection, Settings shot, LayerMask obstacleLayers,
-                           Action<EnemyHealth, Vector3> hit)
+                           Action<EnemyHealth, Vector3> hit, Blade shooter = null)
         {
             settings = shot;
             obstacles = obstacleLayers;
             onHit = hit;
+            source = shooter;
 
             position = origin;
             direction = flightDirection.normalized;
@@ -246,7 +250,7 @@ namespace LightAndShadow
             // A sweep that starts already overlapping reports no point.
             Vector3 point = hit.distance > 0f ? hit.point : position;
 
-            enemy.TakeDamage(settings.damage);
+            enemy.TakeDamage(settings.damage, source);
 
             // Damage first: a killing note has nothing left to mark.
             if (!enemy.IsDead)

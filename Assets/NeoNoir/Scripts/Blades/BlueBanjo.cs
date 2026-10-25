@@ -132,6 +132,15 @@ namespace LightAndShadow
         [Min(0.01f)]
         private float floatEngageTime = 0.25f;
 
+        [Header("Kill")]
+        [SerializeField]
+        [Tooltip("Burst of notes from an enemy Blue kills, by any of her attacks. The same burst as a full mark's, with its own settings.")]
+        private BlueBurst.Settings killBurst = new BlueBurst.Settings
+        {
+            notes = 12,
+            speed = 7f,
+        };
+
         [Header("Visuals")]
         [SerializeField]
         [Tooltip("Material for the rings, burst and perimeter, normally NeoNoir/Flat in Blue's colour. Empty uses the banjo's own.")]
@@ -167,18 +176,15 @@ namespace LightAndShadow
         public override bool Lingering => perimeterRunning && perimeterRemaining > perimeter.fadeTime;
 
         /// <summary>The effect material, or the banjo's own when none is set. Never copied or edited.</summary>
-        private Material ResolvedEffectMaterial
-        {
-            get
-            {
-                if (effectMaterial != null)
-                {
-                    return effectMaterial;
-                }
+        private Material ResolvedEffectMaterial => effectMaterial != null ? effectMaterial : OwnMaterial;
 
-                Renderer own = GetComponentInChildren<Renderer>();
-                return own != null ? own.sharedMaterial : null;
-            }
+        /// <summary>A burst of notes from the body, with a ring flaring out round its feet.</summary>
+        protected override void OnKill(EnemyHealth enemy, Bounds body)
+        {
+            Vector3 feet = new Vector3(body.center.x, body.min.y, body.center.z);
+            float radius = Mathf.Max(0.3f, Mathf.Max(body.extents.x, body.extents.z));
+
+            BlueBurst.Play(body.center, feet, radius, killBurst, ResolvedEffectMaterial, notePrefabs);
         }
 
         protected override void Awake()
@@ -328,7 +334,7 @@ namespace LightAndShadow
                 flight = made.AddComponent<SoundNote>();
             }
 
-            flight.Launch(origin, aim, note, obstacleLayers, OnNoteHit);
+            flight.Launch(origin, aim, note, obstacleLayers, OnNoteHit, this);
 
             strum = 1f;
             strumSide = -strumSide;
@@ -369,7 +375,7 @@ namespace LightAndShadow
 
             if (!markByEnemy.TryGetValue(enemy, out BlueMark mark) || mark == null)
             {
-                mark = BlueMark.Create(enemy, marks, ResolvedEffectMaterial, notePrefabs, OnMarkBurst);
+                mark = BlueMark.Create(enemy, marks, ResolvedEffectMaterial, notePrefabs, OnMarkBurst, this);
                 markByEnemy[enemy] = mark;
             }
 

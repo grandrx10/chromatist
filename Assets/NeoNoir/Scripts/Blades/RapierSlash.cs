@@ -66,6 +66,7 @@ namespace LightAndShadow
         private Settings settings;
         private Action<EnemyHealth, Vector3> onHit;
         private Color effectTint;
+        private Blade source;
         private Vector3 position;
         private float heading;
         private float curvature;
@@ -81,11 +82,13 @@ namespace LightAndShadow
         /// if given, hears about every enemy the slash hits and the point the
         /// slash arrived from: where it was the frame before it connected.
         /// <paramref name="effectTint"/> colours the slash effect on a hit.
+        /// <paramref name="source"/> is the blade that threw it, told about any
+        /// kill.
         /// </summary>
         public static RapierSlash Spawn(Vector3 origin, Vector3 direction, Vector3 target,
                                         Settings settings, Material material,
                                         Action<EnemyHealth, Vector3> onHit = null,
-                                        Color effectTint = default)
+                                        Color effectTint = default, Blade source = null)
         {
             GameObject host = new GameObject("RapierSlash");
 
@@ -96,6 +99,7 @@ namespace LightAndShadow
             RapierSlash slash = host.AddComponent<RapierSlash>();
             slash.onHit = onHit;
             slash.effectTint = effectTint;
+            slash.source = source;
             slash.Launch(origin, direction, target, settings, material);
             return slash;
         }
@@ -213,7 +217,8 @@ namespace LightAndShadow
 
             transform.position = position;
 
-            BladeDamage.Sweep(start, position, settings.radius, settings.damage, position - start, hit, onHit, effectTint);
+            BladeDamage.Sweep(start, position, settings.radius, settings.damage, position - start, hit, onHit, effectTint,
+                              source: source);
 
             if (travelled >= settings.range - 0.0001f)
             {

@@ -4,14 +4,14 @@ using UnityEngine;
 namespace LightAndShadow
 {
     /// <summary>
-    /// Turns the enemy's model to face the player, then fires one projectile
-    /// straight ahead from the muzzle.
+    /// Winds up for a moment, then fires one projectile straight ahead from
+    /// the muzzle.
     /// </summary>
     /// <remarks>
-    /// The shot goes where the model is facing, not where the player is. If
-    /// the turn runs out of time before it lines up, the shot still fires
-    /// along whatever the model is pointing at, so a player who circles fast
-    /// enough can outrun the aim.
+    /// The enemy keeps turning toward the player the whole time, at its own
+    /// turn rate, and the shot goes where the model is facing when the windup
+    /// ends -- not where the player is. A player who circles fast enough can
+    /// outrun the aim.
     ///
     /// Speed, damage and lifetime belong to the projectile prefab, not to this
     /// attack.
@@ -22,38 +22,33 @@ namespace LightAndShadow
         [SerializeField]
         private EnemyProjectile projectilePrefab;
 
-        [Header("Aim")]
+        [Header("Timing")]
         [SerializeField]
-        [Tooltip("Degrees per second the model turns toward the player.")]
+        [Tooltip("Seconds from the start of the attack animation to the shot.")]
         [Min(0f)]
-        private float turnSpeed = 360f;
+        private float windup = 1f;
 
         [SerializeField]
-        [Tooltip("Fire once the model is within this many degrees of facing the player.")]
-        [Range(0f, 45f)]
-        private float aimTolerance = 3f;
-
-        [SerializeField]
-        [Tooltip("Most seconds spent turning. When it runs out, the shot fires wherever the model is facing.")]
+        [Tooltip("Seconds after the shot before the attack counts as over and the enemy goes back to idle. Lets the animation finish.")]
         [Min(0f)]
-        private float maxTurnTime = 1f;
+        private float recovery = 0.5f;
 
         public override IEnumerator Perform(Enemy enemy)
         {
-            float elapsed = 0f;
-
-            while (enemy.HasTarget && elapsed < maxTurnTime)
+            if (windup > 0f)
             {
-                if (enemy.TurnModelTowardTarget(turnSpeed * Time.deltaTime) <= aimTolerance)
-                {
-                    break;
-                }
-
-                elapsed += Time.deltaTime;
-                yield return null;
+                yield return new WaitForSeconds(windup);
             }
 
-            Fire(enemy);
+            if (enemy.HasTarget)
+            {
+                Fire(enemy);
+            }
+
+            if (recovery > 0f)
+            {
+                yield return new WaitForSeconds(recovery);
+            }
         }
 
         private void Fire(Enemy enemy)

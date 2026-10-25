@@ -28,7 +28,12 @@ namespace LightAndShadow
     /// what it hit.
     ///
     /// Spawned at runtime and builds its own mesh, so it needs no prefab. A
-    /// model can be given instead; its colliders are switched off.
+    /// model can be given instead. It is never instantiated per lotus: the
+    /// first time it is used, it is built once and baked into a single plain
+    /// mesh, one submesh per material, which every lotus after shares. So a
+    /// model made of many parts, or one still carrying ProBuilder data that
+    /// would rebuild its mesh on every spawn, costs no more than the built-in
+    /// lotus. Its colliders are left behind in the bake.
     /// </remarks>
     public sealed class SageLotus : MonoBehaviour
     {
@@ -117,12 +122,28 @@ namespace LightAndShadow
         private static readonly Collider[] overlaps = new Collider[32];
         private static Mesh sharedMesh;
 
+        private sealed class BakedModel
+        {
+            public Mesh Mesh;
+            public Material[] Materials;
+        }
+
+        // One bake per model, shared by every lotus that shows it. A null
+        // entry is a model with nothing to bake, so it falls back to
+        // instantiating rather than trying again every lotus.
+        private static readonly Dictionary<GameObject, BakedModel> bakedModels = new Dictionary<GameObject, BakedModel>();
+
+        // Only bodies can step on a lotus. Leaving the floor and walls out
+        // keeps every waiting lotus from finding them, every frame.
+        private static int stepLayers;
+
         private readonly HashSet<EnemyHealth> hit = new HashSet<EnemyHealth>();
 
         private Settings settings;
         private Material material;
         private Transform player;
         private Color slashTint;
+        private Blade source;
 
         private Transform bloom;
         private Renderer[] renderers;
@@ -137,28 +158,38 @@ namespace LightAndShadow
         /// is who can step on it to be healed, and is never hurt by it.
         /// <paramref name="model"/>, if given, is shown instead of the built
         /// lotus; it should be one unit across, facing up.
+        /// <paramref name="source"/> is the blade that planted it, told about
+        /// any kill its burst makes.
         /// </summary>
         public static SageLotus Plant(Vector3 floorPoint, Settings settings, Material material, GameObject model,
-                                      Transform player, Color slashTint)
+                                      Transform player, Color slashTint, Blade source = null)
         {
             GameObject host = new GameObject("SageLotus");
             SageLotus lotus = host.AddComponent<SageLotus>();
-            lotus.Begin(floorPoint, settings, material, model, player, slashTint);
+            lotus.Begin(floorPoint, settings, material, model, player, slashTint, source);
             return lotus;
         }
 
         private void Begin(Vector3 floorPoint, Settings plantSettings, Material plantMaterial, GameObject model,
-                           Transform plantPlayer, Color tint)
+                           Transform plantPlayer, Color tint, Blade plantSource)
         {
             settings = plantSettings;
             material = plantMaterial;
             player = plantPlayer;
             slashTint = tint;
+            source = plantSource;
 
             transform.SetPositionAndRotation(floorPoint, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
 
-            if (model != null)
+            BakedModel baked = model != null ? Bake(model) : null;
+
+            if (baked != null)
             {
+                bloom = AddBloom(baked.Mesh, baked.Materials);
+            }
+            else if (model != null)
+            {
+                // Nothing in the model could be baked: show it as it is.
                 GameObject made = Instantiate(model, transform, false);
 
                 foreach (Collider part in made.GetComponentsInChildren<Collider>())
@@ -170,16 +201,7 @@ namespace LightAndShadow
             }
             else
             {
-                GameObject made = new GameObject("Bloom");
-                made.transform.SetParent(transform, false);
-                made.AddComponent<MeshFilter>().sharedMesh = LotusMesh();
-
-                MeshRenderer meshRenderer = made.AddComponent<MeshRenderer>();
-                meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                meshRenderer.receiveShadows = false;
-                meshRenderer.sharedMaterial = material;
-
-                bloom = made.transform;
+                bloom = AddBloom(LotusMesh(), new[] { material });
             }
 
             bloom.localPosition = Vector3.up * settings.floorOffset;
@@ -190,6 +212,125 @@ namespace LightAndShadow
 
             phase = Phase.Blooming;
             SetBloom(settings.startScale);
+        }
+
+        /// <summary>Bakes <paramref name="model"/> now rather than on the first lotus, so that lotus has no hitch.</summary>
+        public static void Prewarm(GameObject model)
+        {
+            if (model != null)
+            {
+                Bake(model);
+            }
+        }
+
+        private Transform AddBloom(Mesh mesh, Material[] materials)
+        {
+            GameObject made = new GameObject("Bloom");
+            made.transform.SetParent(transform, false);
+            made.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            MeshRenderer meshRenderer = made.AddComponent<MeshRenderer>();
+            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
+            meshRenderer.sharedMaterials = materials;
+
+            return made.transform;
+        }
+
+        /// <summary>
+        /// Builds <paramref name="model"/> once, off to the side, and merges
+        /// every mesh in it into one, grouped into a submesh per material.
+        /// Laid out as an instance of the model would sit under a lotus:
+        /// turned as its root is, but not moved or scaled, since the lotus
+        /// sets those itself.
+        /// </summary>
+        private static BakedModel Bake(GameObject model)
+        {
+            if (bakedModels.TryGetValue(model, out BakedModel cached) && (cached == null || cached.Mesh != null))
+            {
+                return cached;
+            }
+
+            // Built live, so a model that makes its mesh as it wakes --
+            // ProBuilder does -- has made it by the time it is read.
+            GameObject template = Instantiate(model);
+            Transform root = template.transform;
+            Matrix4x4 toLotus = Matrix4x4.Rotate(root.rotation) * root.worldToLocalMatrix;
+
+            List<Material> materials = new List<Material>();
+            List<List<CombineInstance>> groups = new List<List<CombineInstance>>();
+
+            foreach (MeshRenderer part in template.GetComponentsInChildren<MeshRenderer>())
+            {
+                MeshFilter filter = part.GetComponent<MeshFilter>();
+                Mesh mesh = filter != null ? filter.sharedMesh : null;
+
+                if (!part.enabled || mesh == null)
+                {
+                    continue;
+                }
+
+                Material[] partMaterials = part.sharedMaterials;
+                Matrix4x4 matrix = toLotus * part.transform.localToWorldMatrix;
+
+                for (int submesh = 0; submesh < mesh.subMeshCount; submesh++)
+                {
+                    Material partMaterial = partMaterials.Length > 0
+                        ? partMaterials[Mathf.Min(submesh, partMaterials.Length - 1)]
+                        : null;
+
+                    int group = materials.IndexOf(partMaterial);
+                    if (group < 0)
+                    {
+                        group = materials.Count;
+                        materials.Add(partMaterial);
+                        groups.Add(new List<CombineInstance>());
+                    }
+
+                    groups[group].Add(new CombineInstance { mesh = mesh, subMeshIndex = submesh, transform = matrix });
+                }
+            }
+
+            BakedModel baked = null;
+
+            if (groups.Count > 0)
+            {
+                // Each material's parts merged into one piece, then the
+                // pieces stacked as the submeshes of the final mesh.
+                CombineInstance[] pieces = new CombineInstance[groups.Count];
+                List<Mesh> scratch = new List<Mesh>();
+
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    Mesh piece = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                    piece.CombineMeshes(groups[i].ToArray(), true, true);
+                    scratch.Add(piece);
+                    pieces[i] = new CombineInstance { mesh = piece, transform = Matrix4x4.identity };
+                }
+
+                Mesh combined = new Mesh { name = model.name + " (baked)", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+                combined.CombineMeshes(pieces, false, false);
+                combined.RecalculateBounds();
+
+                foreach (Mesh piece in scratch)
+                {
+                    Destroy(piece);
+                }
+
+                baked = new BakedModel { Mesh = combined, Materials = materials.ToArray() };
+            }
+            else
+            {
+                Debug.LogWarning($"[SageLotus] {model.name} has no mesh to bake, so every lotus will instantiate it -- slowly. Give it a plain MeshFilter and MeshRenderer.", model);
+            }
+
+            // Hidden at once, then removed: the bake is a copy, so it
+            // outlives the template and whatever mesh the template made.
+            template.SetActive(false);
+            Destroy(template);
+
+            bakedModels[model] = baked;
+            return baked;
         }
 
         private void Update()
@@ -274,9 +415,14 @@ namespace LightAndShadow
 
         private void CheckStep()
         {
+            if (stepLayers == 0)
+            {
+                stepLayers = StepLayers();
+            }
+
             Vector3 floor = transform.position;
             int count = Physics.OverlapCapsuleNonAlloc(floor, floor + Vector3.up * CheckHeight, settings.stepRadius,
-                                                       overlaps, ~0, QueryTriggerInteraction.Ignore);
+                                                       overlaps, stepLayers, QueryTriggerInteraction.Ignore);
 
             bool enemy = false;
 
@@ -302,6 +448,40 @@ namespace LightAndShadow
             }
         }
 
+        /// <summary>
+        /// The player's layer and the layers of every live enemy. Falls back
+        /// to everything if neither can be found, so stepping still works,
+        /// only slower.
+        /// </summary>
+        private int StepLayers()
+        {
+            int layers = 0;
+
+            if (player != null)
+            {
+                foreach (Collider part in player.GetComponentsInChildren<Collider>())
+                {
+                    layers |= 1 << part.gameObject.layer;
+                }
+            }
+
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer >= 0)
+            {
+                layers |= 1 << enemyLayer;
+            }
+
+            foreach (EnemyHealth enemy in EnemyHealth.Active)
+            {
+                if (enemy != null)
+                {
+                    layers |= 1 << enemy.gameObject.layer;
+                }
+            }
+
+            return layers != 0 ? layers : ~0;
+        }
+
         // ---- burst ----------------------------------------------------------
 
         private void Burst(bool byPlayer)
@@ -321,7 +501,7 @@ namespace LightAndShadow
             if ((!byPlayer || settings.damageWhenPlayerSteps) && settings.damage > 0f)
             {
                 BladeDamage.Sweep(floor, floor + Vector3.up * CheckHeight, settings.burstRadius, settings.damage,
-                                  Vector3.zero, hit, OnHit, slashTint, false);
+                                  Vector3.zero, hit, OnHit, slashTint, false, source: source);
             }
 
             // Starts small and flares out to the burst radius.

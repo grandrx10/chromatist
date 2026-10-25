@@ -47,7 +47,7 @@ namespace LightAndShadow
 
         [Header("Orbit")]
         [SerializeField]
-        [Tooltip("Degrees per second around the player. Negative reverses direction.")]
+        [Tooltip("Degrees per second around the player. Negative reverses direction. Keep it the same on every blade, or the main and secondary drift off opposite sides.")]
         private float orbitSpeed = 45f;
 
         [SerializeField]
@@ -81,7 +81,6 @@ namespace LightAndShadow
 
         private Vector3 anchor;
         private Vector3 anchorVelocity;
-        private float orbitAngle;
 
         private Renderer[] renderers;
         private MaterialPropertyBlock fadeBlock;
@@ -220,10 +219,47 @@ namespace LightAndShadow
             HitWindowReset?.Invoke();
         }
 
+        /// <summary>
+        /// Called by an enemy this blade, or anything it made, has just
+        /// killed. Works while the blade is out of the rotation, since what it
+        /// made can still be killing then.
+        /// </summary>
+        public void ReportKill(EnemyHealth enemy)
+        {
+            if (enemy != null)
+            {
+                OnKill(enemy, enemy.BodyBounds());
+            }
+        }
+
+        /// <summary>
+        /// Plays this blade's kill effect on <paramref name="enemy"/>, whose
+        /// solid body fills <paramref name="body"/>. Nothing by default.
+        /// </summary>
+        protected virtual void OnKill(EnemyHealth enemy, Bounds body)
+        {
+        }
+
+        /// <summary>
+        /// The material on the blade's own model, read once while loading.
+        /// Unlike looking it up later, it is found even while the blade is
+        /// hidden out of the rotation.
+        /// </summary>
+        protected Material OwnMaterial { get; private set; }
+
         protected virtual void Awake()
         {
             renderers = GetComponentsInChildren<Renderer>(true);
             fadeBlock = new MaterialPropertyBlock();
+
+            foreach (Renderer part in renderers)
+            {
+                if (part.sharedMaterial != null)
+                {
+                    OwnMaterial = part.sharedMaterial;
+                    break;
+                }
+            }
         }
 
         protected virtual void OnEnable()
@@ -255,7 +291,10 @@ namespace LightAndShadow
             anchor = Vector3.SmoothDamp(anchor, owner.position, ref anchorVelocity,
                                         Mathf.Max(0.0001f, followTime), Mathf.Infinity, deltaTime);
 
-            orbitAngle = Mathf.Repeat(orbitAngle + orbitSpeed * deltaTime, 360f);
+            // Off one clock shared by every blade, not each its own: a blade
+            // that sat out of the rotation comes back exactly in step, so the
+            // main and the shown secondary always stay OrbitPhase apart.
+            float orbitAngle = Mathf.Repeat(Time.time * orbitSpeed, 360f);
 
             Vector3 radial = Quaternion.Euler(0f, orbitAngle + OrbitPhase, 0f) * Vector3.forward;
             float bob = Mathf.Sin(Time.time * bobFrequency * 2f * Mathf.PI) * bobAmplitude;
@@ -420,16 +459,6 @@ namespace LightAndShadow
 
             anchor = owner.position;
             anchorVelocity = Vector3.zero;
-
-            // Start the orbit wherever the blade already is, so placing it in
-            // the scene by hand is respected rather than jumped away from.
-            Vector3 offset = transform.position - owner.position;
-            offset.y = 0f;
-
-            if (offset.sqrMagnitude > 0.0001f)
-            {
-                orbitAngle = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg - OrbitPhase;
-            }
 
             OnSnap();
         }

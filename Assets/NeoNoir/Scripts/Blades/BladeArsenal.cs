@@ -19,6 +19,9 @@ namespace LightAndShadow
     /// rotation waits for the blade immediately after the one just used --
     /// even if one further down the list happens to come off cooldown first.
     ///
+    /// The swap key skips the shown blade without using it, moving on the
+    /// same way but with no cooldown.
+    ///
     /// Goes on the player. Blades are spawned unparented, since they must not
     /// turn with the player.
     /// </remarks>
@@ -186,6 +189,10 @@ namespace LightAndShadow
             {
                 TryUseSecondary();
             }
+            else if (input != null && input.SwapPressed)
+            {
+                TrySwap();
+            }
 
             UpdateFades(deltaTime);
         }
@@ -209,6 +216,36 @@ namespace LightAndShadow
             // inside this call, and its handler must see the state it expects.
             abilityRunning = true;
             entry.Blade.ActivateSecondary();
+        }
+
+        /// <summary>
+        /// Puts the shown secondary away unused and shows the next ready one
+        /// in order, skipping any cooling down. The one put away keeps its
+        /// place and goes on no cooldown. Does nothing with no secondary
+        /// shown, mid-ability, or when no other one is ready.
+        /// </summary>
+        private void TrySwap()
+        {
+            if (abilityRunning || shown < 0)
+            {
+                return;
+            }
+
+            int count = secondaries.Count;
+
+            // Stops one short of a full lap: swapping never lands back on
+            // the blade already shown.
+            for (int step = 1; step < count; step++)
+            {
+                int index = (shown + step) % count;
+
+                if (secondaries[index].Ready)
+                {
+                    secondaries[shown].Shown = false;
+                    Show(index);
+                    return;
+                }
+            }
         }
 
         /// <summary>
