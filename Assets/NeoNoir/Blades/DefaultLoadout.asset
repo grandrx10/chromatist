@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb3649cb723e36d4db648a18b112ec64, type: 3}
+  m_Name: DefaultLoadout
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.Loadout
+  mainBlade: {fileID: 11400000, guid: 3a2a01e353ff22340b8de05852bdf090, type: 2}
+  secondaryBlades:
+  - {fileID: 11400000, guid: f8e2a86010132b94e886076efc42cddb, type: 2}
+  - {fileID: 11400000, guid: 5dc0fa1ccd6e4d7a9b2b54a575b7c9ba, type: 2}
+  - {fileID: 11400000, guid: cf0e79b4c4053784ebf2dc1c0b53669f, type: 2}
+  - {fileID: 11400000, guid: 3a2a01e353ff22340b8de05852bdf090, type: 2}
+  - {fileID: 11400000, guid: c400266a961c40fe98cd46a8a1ff20d0, type: 2}
