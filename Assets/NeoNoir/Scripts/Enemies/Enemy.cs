@@ -419,16 +419,23 @@ namespace LightAndShadow
 
         private IEnumerator Run()
         {
-            // Dormant: watch for the player, or for damage to wake it.
+            // Dormant: watch for the player, or for damage to wake it. Waits
+            // a frame before every check, never after: this starts in
+            // OnEnable, possibly before EnemyHealth has woken and set its
+            // health, and an enemy that reads as dead can never be woken --
+            // so checking first would spin here forever inside one frame.
             while (!IsAwake)
             {
+                yield return null;
+
+                if (health.IsDead)
+                {
+                    yield break;
+                }
+
                 if (PlayerInRange())
                 {
                     Wake();
-                }
-                else
-                {
-                    yield return null;
                 }
             }
 

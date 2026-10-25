@@ -23,6 +23,13 @@ namespace LightAndShadow
     /// so one slash is at most one charge. A burst plays a
     /// <see cref="SlashFlurry"/> on the enemy.
     ///
+    /// Any other weapon's attack counts too, by the same rule, wherever the
+    /// weapon says the blow came from (<see cref="EnemyHealth.Struck"/>): a
+    /// sweep from where it started, an arrow or note from where it flew in.
+    /// Rose's own hits are left to her slashes, which report themselves, so
+    /// none is counted twice and her flurries never charge the mark they
+    /// came from.
+    ///
     /// Not parented to the enemy, only following it, so the enemy's own
     /// rotation and scale never bend the arc. Sits at the bottom of the
     /// enemy's collider, which is taken to be the floor.
@@ -87,6 +94,7 @@ namespace LightAndShadow
         private Settings settings;
         private Material material;
         private Blade source;
+        private float strikeDamage;
 
         private Mesh mesh;
         private MeshRenderer meshRenderer;
@@ -110,22 +118,28 @@ namespace LightAndShadow
         /// <summary>
         /// Paints a mark round <paramref name="enemy"/>. It removes itself when
         /// the enemy dies or is destroyed. <paramref name="source"/> is the
-        /// blade that marked it, told if the mark's flurry kills.
+        /// blade that marked it, told if the mark's flurry kills; its own hits
+        /// are not picked up here. <paramref name="strikeDamage"/> is what each
+        /// slash of the flurry deals when another weapon's hit bursts it.
         /// </summary>
-        public static RoseMark Create(EnemyHealth enemy, Settings settings, Material material, Blade source = null)
+        public static RoseMark Create(EnemyHealth enemy, Settings settings, Material material, Blade source = null,
+                                      float strikeDamage = 0f)
         {
             GameObject host = new GameObject("RoseMark");
             RoseMark mark = host.AddComponent<RoseMark>();
-            mark.Bind(enemy, settings, material, source);
+            mark.Bind(enemy, settings, material, source, strikeDamage);
             return mark;
         }
 
-        private void Bind(EnemyHealth enemy, Settings markSettings, Material markMaterial, Blade markSource)
+        private void Bind(EnemyHealth enemy, Settings markSettings, Material markMaterial, Blade markSource,
+                          float markStrikeDamage)
         {
             target = enemy;
             settings = markSettings;
             material = markMaterial;
             source = markSource;
+            strikeDamage = markStrikeDamage;
+            target.Struck += OnStruck;
             targetCollider = enemy.GetComponentInChildren<Collider>();
 
             // Sized to the collider once. Enemies do not change size.
@@ -201,6 +215,17 @@ namespace LightAndShadow
             }
 
             return true;
+        }
+
+        /// <summary>Another weapon's blow on the enemy, counted the same way as a slash.</summary>
+        private void OnStruck(EnemyHealth enemy, Blade blade, Vector3 from)
+        {
+            if (blade != null && blade == source)
+            {
+                return;
+            }
+
+            RegisterHit(from, strikeDamage);
         }
 
         private void Arm()
@@ -303,6 +328,11 @@ namespace LightAndShadow
 
         private void OnDestroy()
         {
+            if (target != null)
+            {
+                target.Struck -= OnStruck;
+            }
+
             if (mesh != null)
             {
                 Destroy(mesh);

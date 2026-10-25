@@ -38,6 +38,14 @@ namespace LightAndShadow
         /// <summary>Raised once, when health reaches zero.</summary>
         public event Action<EnemyHealth> Died;
 
+        /// <summary>
+        /// Raised after a blow the enemy survived, when the weapon said where
+        /// it came from: with the blow's blade, or null if it did not say,
+        /// and the point the blow arrived from. For anything that cares which
+        /// side the enemy was hit from.
+        /// </summary>
+        public event Action<EnemyHealth, Blade, Vector3> Struck;
+
         public float MaxHealth => maxHealth;
 
         public float CurrentHealth { get; private set; }
@@ -146,8 +154,11 @@ namespace LightAndShadow
         /// nothing happened -- already dead, or a non-positive amount.
         /// <paramref name="source"/> is the blade the blow came from, directly
         /// or through anything it made; if the blow kills, that blade is told.
+        /// <paramref name="from"/> is the point the blow arrived from, if the
+        /// weapon has one; a blow the enemy survives is then reported through
+        /// <see cref="Struck"/>.
         /// </summary>
-        public bool TakeDamage(float amount, Blade source = null)
+        public bool TakeDamage(float amount, Blade source = null, Vector3? from = null)
         {
             if (IsDead || amount <= 0f)
             {
@@ -173,6 +184,13 @@ namespace LightAndShadow
                 {
                     Destroy(gameObject);
                 }
+            }
+            else if (from.HasValue)
+            {
+                // Last, after everything above has settled: a listener may
+                // deal damage of its own in response, and that must not land
+                // in the middle of this blow.
+                Struck?.Invoke(this, source, from.Value);
             }
 
             return true;

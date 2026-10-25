@@ -345,7 +345,7 @@ namespace LightAndShadow
             // A sweep that starts already overlapping reports no point.
             Vector3 point = hit.distance > 0f ? hit.point : transform.position;
 
-            enemy.TakeDamage(settings.damage);
+            enemy.TakeDamage(settings.damage, from: transform.position);
 
             if (SlashEffect.Current != null)
             {

@@ -250,7 +250,7 @@ namespace LightAndShadow
             // A sweep that starts already overlapping reports no point.
             Vector3 point = hit.distance > 0f ? hit.point : position;
 
-            enemy.TakeDamage(settings.damage, source);
+            enemy.TakeDamage(settings.damage, source, position);
 
             // Damage first: a killing note has nothing left to mark.
             if (!enemy.IsDead)

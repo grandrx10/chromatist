@@ -505,7 +505,7 @@ namespace LightAndShadow
 
                 if (!markByEnemy.TryGetValue(enemy, out RoseMark mark) || mark == null)
                 {
-                    markByEnemy[enemy] = RoseMark.Create(enemy, marks, ResolvedPetalMaterial, this);
+                    markByEnemy[enemy] = RoseMark.Create(enemy, marks, ResolvedPetalMaterial, this, slash.damage);
                 }
             }
 

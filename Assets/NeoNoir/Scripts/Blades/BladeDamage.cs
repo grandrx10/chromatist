@@ -56,7 +56,8 @@ namespace LightAndShadow
                 Vector3 point = overlap.ClosestPointOnBounds(end);
 
                 float before = enemy.CurrentHealth;
-                enemy.TakeDamage(damage, source);
+                // From the sweep's start: where the attack was coming from.
+                enemy.TakeDamage(damage, source, start);
                 dealt += before - enemy.CurrentHealth;
 
                 if (slashEffect && SlashEffect.Current != null)
