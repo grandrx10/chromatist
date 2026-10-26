@@ -21,5 +21,7 @@ MonoBehaviour:
     wanderLegTime: {x: 0.6, y: 1.6}
     stopDistance: 2.5
   projectilePrefab: {fileID: 4683515996178420819, guid: b87fbe5bbdc79134787226b476b138e5, type: 3}
+  projectileCount: 3
+  spread: 60
   windup: 1
   recovery: 0.5

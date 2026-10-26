@@ -35,6 +35,12 @@ namespace LightAndShadow
         /// <summary>Raised after damage is applied, with the amount dealt.</summary>
         public event Action<EnemyHealth, float> Damaged;
 
+        /// <summary>
+        /// <see cref="Damaged"/> for every enemy at once, so something like
+        /// damage numbers can hear all of them without subscribing to each.
+        /// </summary>
+        public static event Action<EnemyHealth, float> AnyDamaged;
+
         /// <summary>Raised once, when health reaches zero.</summary>
         public event Action<EnemyHealth> Died;
 
@@ -51,6 +57,9 @@ namespace LightAndShadow
         public float CurrentHealth { get; private set; }
 
         public bool IsDead => CurrentHealth <= 0f;
+
+        /// <summary>While true, every blow is ignored as if it never landed.</summary>
+        public bool Invulnerable { get; set; }
 
         /// <summary>
         /// What incoming damage is multiplied by right now: the active
@@ -151,7 +160,7 @@ namespace LightAndShadow
 
         /// <summary>
         /// Deals damage, scaled by any active vulnerability. Returns false if
-        /// nothing happened -- already dead, or a non-positive amount.
+        /// nothing happened -- already dead, invulnerable, or a non-positive amount.
         /// <paramref name="source"/> is the blade the blow came from, directly
         /// or through anything it made; if the blow kills, that blade is told.
         /// <paramref name="from"/> is the point the blow arrived from, if the
@@ -160,7 +169,7 @@ namespace LightAndShadow
         /// </summary>
         public bool TakeDamage(float amount, Blade source = null, Vector3? from = null)
         {
-            if (IsDead || amount <= 0f)
+            if (IsDead || Invulnerable || amount <= 0f)
             {
                 return false;
             }
@@ -169,6 +178,7 @@ namespace LightAndShadow
 
             CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
             Damaged?.Invoke(this, amount);
+            AnyDamaged?.Invoke(this, amount);
 
             if (IsDead)
             {

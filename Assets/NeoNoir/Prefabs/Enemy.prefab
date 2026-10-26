@@ -1613,6 +1613,7 @@ GameObject:
   - component: {fileID: 8186375818398197732}
   - component: {fileID: 6360503928981304619}
   - component: {fileID: -1049044334206255383}
+  - component: {fileID: 9027042085853966122}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Untagged
@@ -1689,6 +1690,7 @@ MonoBehaviour:
   muzzle: {fileID: 0}
   target: {fileID: 0}
   animator: {fileID: 0}
+  detectionRadius: 25
   startDelay: 1
   turnSpeed: 360
   phases:
@@ -1715,9 +1717,41 @@ MonoBehaviour:
   ragdollPrefab: {fileID: 2903107502555033986, guid: ab2bff279e3275347896e614f10be90b, type: 3}
   poseSource: {fileID: 0}
   knockback: 10
+  referenceDamage: 10
+  damageFalloff: 0.63
   upward: 2
   inheritVelocity: 1
-  lifetime: 0
+  minSpin: 180
+  maxSpin: 540
+  fadeDelay: 3
+  fadeTime: 0.5
+--- !u!54 &9027042085853966122
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2903107502555033986}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &3159997361547399110
 GameObject:
   m_ObjectHideFlags: 0

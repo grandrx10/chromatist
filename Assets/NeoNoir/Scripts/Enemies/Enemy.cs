@@ -28,12 +28,17 @@ namespace LightAndShadow
     /// turning nor attacking. It wakes for good the moment the player comes
     /// within <see cref="detectionRadius"/>, or the moment it takes damage
     /// from anything, wherever the player is. <see cref="startDelay"/> counts
-    /// from waking.
+    /// from waking. While <see cref="StayDormant"/> is set it cannot wake at
+    /// all, so something like <see cref="BossIntro"/> can choose the moment.
     ///
     /// The model is separate from the enemy itself: the enemy turns the
     /// model, never the root, so colliders and anything else on the root stay
     /// put. It turns the model toward the player all the time, never faster
     /// than <see cref="turnSpeed"/>, whichever way it happens to be walking.
+    /// An attack can point it elsewhere with <see cref="FacingOverride"/>,
+    /// drive it directly with <see cref="VelocityOverride"/>, as a charge
+    /// does, or set it spinning with <see cref="SpinOverride"/>, as a whirl
+    /// does. All three are cleared whenever an attack starts.
     ///
     /// Each attack plays its animation while it runs, and the idle animation
     /// plays otherwise. Each attack's movement is followed from its start
@@ -41,6 +46,8 @@ namespace LightAndShadow
     /// the first attack the enemy stands still. With a non-kinematic
     /// Rigidbody on the root, movement sets its velocity, so walls stop it;
     /// without one, the root is moved directly and passes through anything.
+    /// A body left on no interpolation is switched to Interpolate, or it would
+    /// only move on physics steps and stutter on screen, worst at speed.
     /// </remarks>
     [RequireComponent(typeof(EnemyHealth))]
     public sealed class Enemy : MonoBehaviour
@@ -161,6 +168,42 @@ namespace LightAndShadow
         /// <summary>How the enemy is really moving across the floor this frame, in units per second. Flat.</summary>
         public Vector3 Velocity { get; private set; }
 
+        /// <summary>
+        /// Scales the current attack's walking speed, so an attack can slow
+        /// the enemy partway through. Back to 1 whenever an attack starts.
+        /// </summary>
+        public float MovementSpeedMultiplier { get; set; } = 1f;
+
+        /// <summary>
+        /// Middle of the area the enemy fights in, for attacks that pick spots
+        /// around it. Null until something sets one, such as
+        /// <see cref="BossIntro"/>; attacks then use wherever the enemy stands.
+        /// </summary>
+        public Vector3? ArenaCentre { get; set; }
+
+        /// <summary>While true the enemy cannot wake, neither by the player coming close nor by taking damage.</summary>
+        public bool StayDormant { get; set; }
+
+        /// <summary>
+        /// While set, the model turns toward this flat direction instead of
+        /// toward the player, still no faster than the turn speed. Cleared
+        /// whenever an attack starts.
+        /// </summary>
+        public Vector3? FacingOverride { get; set; }
+
+        /// <summary>
+        /// While set, the enemy moves at this flat velocity instead of
+        /// following its attack's movement. Cleared whenever an attack starts.
+        /// </summary>
+        public Vector3? VelocityOverride { get; set; }
+
+        /// <summary>
+        /// While set, the model spins about the vertical axis at this many
+        /// degrees per second, ignoring the player and the turn speed. Wins
+        /// over <see cref="FacingOverride"/>. Cleared whenever an attack starts.
+        /// </summary>
+        public float? SpinOverride { get; set; }
+
         /// <summary>Remaining health, 0 to 100.</summary>
         public float HealthPercent => health.CurrentHealth / health.MaxHealth * 100f;
 
@@ -176,16 +219,25 @@ namespace LightAndShadow
                 return 180f;
             }
 
-            Transform turning = Model;
-            Vector3 toTarget = target.position - turning.position;
-            toTarget.y = 0f;
+            return TurnModelToward(target.position - Model.position, maxDegrees);
+        }
 
-            if (toTarget.sqrMagnitude < 0.0001f)
+        /// <summary>
+        /// Turns the model about the vertical axis toward <paramref name="direction"/>
+        /// by at most <paramref name="maxDegrees"/>. Returns how many degrees
+        /// off it still is afterwards.
+        /// </summary>
+        public float TurnModelToward(Vector3 direction, float maxDegrees)
+        {
+            Transform turning = Model;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude < 0.0001f)
             {
                 return 0f;
             }
 
-            Quaternion facing = Quaternion.LookRotation(toTarget, Vector3.up);
+            Quaternion facing = Quaternion.LookRotation(direction, Vector3.up);
             turning.rotation = Quaternion.RotateTowards(turning.rotation, facing, maxDegrees);
             return Quaternion.Angle(turning.rotation, facing);
         }
@@ -194,6 +246,11 @@ namespace LightAndShadow
         {
             health = GetComponent<EnemyHealth>();
             body = GetComponent<Rigidbody>();
+
+            if (body != null && body.interpolation == RigidbodyInterpolation.None)
+            {
+                body.interpolation = RigidbodyInterpolation.Interpolate;
+            }
 
             if (animator == null)
             {
@@ -219,7 +276,7 @@ namespace LightAndShadow
         /// <summary>Wakes the enemy from dormant, if it is not awake already. It stays awake from then on.</summary>
         public void Wake()
         {
-            if (IsAwake || health.IsDead)
+            if (IsAwake || StayDormant || health.IsDead)
             {
                 return;
             }
@@ -233,6 +290,7 @@ namespace LightAndShadow
             health.Died += OnDied;
             health.Damaged += OnDamaged;
             movement = null;
+            ClearOverrides();
             lastPosition = transform.position;
             PlayAnimation(idleAnimation);
             StartCoroutine(Run());
@@ -244,6 +302,14 @@ namespace LightAndShadow
             health.Damaged -= OnDamaged;
             StopAllCoroutines();
             movement = null;
+            ClearOverrides();
+        }
+
+        private void ClearOverrides()
+        {
+            FacingOverride = null;
+            VelocityOverride = null;
+            SpinOverride = null;
         }
 
         private void OnDamaged(EnemyHealth damaged, float amount)
@@ -262,7 +328,18 @@ namespace LightAndShadow
         {
             if (!health.IsDead && IsAwake)
             {
-                TurnModelTowardTarget(turnSpeed * Time.deltaTime);
+                if (SpinOverride.HasValue)
+                {
+                    Model.Rotate(Vector3.up, SpinOverride.Value * Time.deltaTime, Space.World);
+                }
+                else if (FacingOverride.HasValue)
+                {
+                    TurnModelToward(FacingOverride.Value, turnSpeed * Time.deltaTime);
+                }
+                else
+                {
+                    TurnModelTowardTarget(turnSpeed * Time.deltaTime);
+                }
             }
 
             UpdateSpeedParameter(Time.deltaTime);
@@ -299,7 +376,9 @@ namespace LightAndShadow
                 return;
             }
 
-            Vector3 velocity = DesiredVelocity(Time.fixedDeltaTime);
+            Vector3 velocity = VelocityOverride.HasValue
+                ? Flat(VelocityOverride.Value)
+                : DesiredVelocity(Time.fixedDeltaTime);
 
             if (body != null && !body.isKinematic)
             {
@@ -324,6 +403,8 @@ namespace LightAndShadow
         private void BeginMovement(AttackPattern.MovementSettings settings)
         {
             movement = settings;
+            MovementSpeedMultiplier = 1f;
+            ClearOverrides();
             movementAnchor = transform.position;
             wanderPoint = movementAnchor;
             wanderTimer = 0f;
@@ -332,7 +413,9 @@ namespace LightAndShadow
         /// <summary>The flat velocity the current movement wants this step.</summary>
         private Vector3 DesiredVelocity(float deltaTime)
         {
-            if (movement == null || movement.speed <= 0f)
+            float speed = movement != null ? movement.speed * Mathf.Max(0f, MovementSpeedMultiplier) : 0f;
+
+            if (speed <= 0f)
             {
                 return Vector3.zero;
             }
@@ -350,12 +433,12 @@ namespace LightAndShadow
                     float distance = toTarget.magnitude;
 
                     // Never steps past the stop distance in one go.
-                    float step = Mathf.Min(movement.speed, (distance - movement.stopDistance) / deltaTime);
+                    float step = Mathf.Min(speed, (distance - movement.stopDistance) / deltaTime);
                     return step > 0f ? toTarget / distance * step : Vector3.zero;
                 }
 
                 case MovementType.Idle:
-                    return WanderVelocity(deltaTime);
+                    return WanderVelocity(speed, deltaTime);
 
                 default:
                     return Vector3.zero;
@@ -368,7 +451,7 @@ namespace LightAndShadow
         /// enemy can only leave it if something shoves it out -- and then the
         /// next point brings it back.
         /// </summary>
-        private Vector3 WanderVelocity(float deltaTime)
+        private Vector3 WanderVelocity(float speed, float deltaTime)
         {
             Vector3 toPoint = Flat(wanderPoint - transform.position);
             wanderTimer -= deltaTime;
@@ -389,8 +472,7 @@ namespace LightAndShadow
                 return Vector3.zero;
             }
 
-            float speed = Mathf.Min(movement.speed, distance / deltaTime);
-            return toPoint / distance * speed;
+            return toPoint / distance * Mathf.Min(speed, distance / deltaTime);
         }
 
         private static Vector3 Flat(Vector3 vector)
@@ -399,7 +481,18 @@ namespace LightAndShadow
             return vector;
         }
 
-        private void PlayAnimation(string state)
+        /// <summary>
+        /// Blends to an animator state. Attacks with more than one part use
+        /// this to move on from their own <see cref="AttackPattern.AttackAnimation"/>;
+        /// the enemy still goes back to idle when the attack ends.
+        /// </summary>
+        public void PlayAnimation(string state)
+        {
+            PlayAnimation(state, animationBlend);
+        }
+
+        /// <summary>Blends to an animator state over <paramref name="blend"/> seconds instead of the usual blend time.</summary>
+        public void PlayAnimation(string state, float blend)
         {
             if (animator == null || string.IsNullOrEmpty(state))
             {
@@ -414,7 +507,65 @@ namespace LightAndShadow
                 return;
             }
 
-            animator.CrossFadeInFixedTime(hash, animationBlend, 0);
+            animator.CrossFadeInFixedTime(hash, Mathf.Max(0f, blend), 0);
+        }
+
+        /// <summary>
+        /// Waits until <paramref name="state"/> has played to its end, or the
+        /// animator has moved on from it by itself. Returns at once if there
+        /// is no such state.
+        /// </summary>
+        public IEnumerator WaitForAnimation(string state)
+        {
+            if (animator == null || string.IsNullOrEmpty(state))
+            {
+                yield break;
+            }
+
+            int hash = Animator.StringToHash(state);
+
+            if (!animator.HasState(0, hash))
+            {
+                yield break;
+            }
+
+            // The crossfade into it may not have begun yet; give it a moment
+            // to become the current or upcoming state before giving up.
+            float waited = 0f;
+
+            while (!InState(hash) && waited < 0.5f)
+            {
+                yield return null;
+                waited += Time.deltaTime;
+            }
+
+            while (InState(hash))
+            {
+                AnimatorStateInfo info = animator.IsInTransition(0)
+                    ? animator.GetNextAnimatorStateInfo(0)
+                    : animator.GetCurrentAnimatorStateInfo(0);
+
+                if (info.shortNameHash == hash && info.normalizedTime >= 1f)
+                {
+                    yield break;
+                }
+
+                yield return null;
+            }
+        }
+
+        private bool InState(int hash)
+        {
+            return animator.GetCurrentAnimatorStateInfo(0).shortNameHash == hash
+                || (animator.IsInTransition(0) && animator.GetNextAnimatorStateInfo(0).shortNameHash == hash);
+        }
+
+        /// <summary>Animator state the enemy plays whenever it is not attacking.</summary>
+        public string IdleAnimation => idleAnimation;
+
+        public void PlayIdleAnimation()
+        {
+            PlayAnimation(idleAnimation);
         }
 
         private IEnumerator Run()
@@ -472,13 +623,13 @@ namespace LightAndShadow
                 }
 
                 BeginMovement(pattern.Movement);
-                PlayAnimation(pattern.AttackAnimation);
+                PlayAnimation(pattern.AttackAnimation, BlendOrDefault(pattern.AttackAnimationBlend));
 
                 yield return StartCoroutine(pattern.Perform(this));
 
                 if (!string.IsNullOrEmpty(pattern.AttackAnimation))
                 {
-                    PlayAnimation(idleAnimation);
+                    PlayAnimation(idleAnimation, BlendOrDefault(pattern.IdleReturnBlend));
                 }
 
                 if (pattern.DelayAfter > 0f)
@@ -491,6 +642,11 @@ namespace LightAndShadow
                     yield return null;
                 }
             }
+        }
+
+        private float BlendOrDefault(float blend)
+        {
+            return blend >= 0f ? blend : animationBlend;
         }
 
         /// <summary>The phase with the lowest start the health has dropped to, or -1 if none has started.</summary>

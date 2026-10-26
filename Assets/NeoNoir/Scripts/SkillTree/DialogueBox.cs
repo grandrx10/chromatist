@@ -42,7 +42,7 @@ namespace LightAndShadow
         private Font font;
 
         [SerializeField] [Min(8)] private int fontSize = 34;
-        [SerializeField] [Min(8)] private int speakerFontSize = 28;
+        [SerializeField] [Min(8)] private int speakerFontSize = 42;
 
         [SerializeField]
         [Tooltip("Typing speed, for lines that do not set their own.")]
@@ -56,6 +56,10 @@ namespace LightAndShadow
         [SerializeField] [Min(0f)] private float frameWidth = 3f;
         [SerializeField] private Vector2 choiceSize = new Vector2(280f, 72f);
         [SerializeField] [Min(0f)] private float choiceGap = 48f;
+
+        [SerializeField]
+        [Tooltip("Space between the speaker's name and the edges of its nameplate: across, then up and down.")]
+        private Vector2 speakerPadding = new Vector2(24f, 10f);
 
         [Header("Colours")]
         [SerializeField] private Color background = Color.black;
@@ -76,10 +80,10 @@ namespace LightAndShadow
         private Canvas canvas;
         private RectTransform canvasRect;
         private RectTransform box;
+        private RectTransform speakerPlate;
         private Text speakerLabel;
         private Text body;
         private RectTransform bodyRect;
-        private Image continueMarker;
 
         private RectTransform choiceRow;
         private readonly Choice[] choices = new Choice[2];
@@ -222,11 +226,14 @@ namespace LightAndShadow
             string speaker = line != null ? line.speaker : null;
             bool hasSpeaker = !string.IsNullOrWhiteSpace(speaker);
             speakerLabel.text = hasSpeaker ? speaker : string.Empty;
-            speakerLabel.gameObject.SetActive(hasSpeaker);
+            speakerPlate.gameObject.SetActive(hasSpeaker);
 
-            // Without a speaker the text moves up into the name's place.
-            float top = padding + (hasSpeaker ? speakerFontSize * 1.5f : 0f);
-            bodyRect.offsetMax = new Vector2(-padding, -top);
+            // The nameplate is as wide as the name needs.
+            if (hasSpeaker)
+            {
+                speakerPlate.sizeDelta = new Vector2(speakerLabel.preferredWidth + speakerPadding.x * 2f,
+                                                     speakerFontSize * 1.2f + speakerPadding.y * 2f);
+            }
 
             fullText = line != null && line.text != null ? line.text : string.Empty;
             totalCharacters = CountVisible(fullText);
@@ -236,7 +243,6 @@ namespace LightAndShadow
 
             box.gameObject.SetActive(true);
             choiceRow.gameObject.SetActive(false);
-            continueMarker.enabled = false;
             Render();
 
             // An empty line has nothing to type.
@@ -298,9 +304,6 @@ namespace LightAndShadow
                 return;
             }
 
-            // Blinks while waiting for the click.
-            continueMarker.enabled = Mathf.Repeat(Time.unscaledTime, 1f) < 0.6f;
-
             if (clicked)
             {
                 Action advanced = onAdvance;
@@ -315,10 +318,6 @@ namespace LightAndShadow
             {
                 choiceRow.gameObject.SetActive(true);
                 SetHovered(-1);
-            }
-            else
-            {
-                continueMarker.enabled = true;
             }
         }
 
@@ -553,14 +552,22 @@ namespace LightAndShadow
             box.offsetMin = new Vector2(screenMargin, screenMargin);
             box.offsetMax = new Vector2(-screenMargin, screenMargin + boxHeight);
 
-            speakerLabel = Label("Speaker", box, speakerFontSize, TextAnchor.UpperLeft);
+            // The speaker's nameplate: a box of its own sitting on the main
+            // box's top edge at the left, its bottom frame lying over the
+            // box's top frame so the two borders read as one.
+            speakerPlate = Panel("Speaker", box, out _);
+            speakerPlate.anchorMin = speakerPlate.anchorMax = new Vector2(0f, 1f);
+            speakerPlate.pivot = new Vector2(0f, 0f);
+            speakerPlate.anchoredPosition = new Vector2(padding, -frameWidth);
+
+            speakerLabel = Label("Name", speakerPlate, speakerFontSize, TextAnchor.MiddleCenter);
             speakerLabel.fontStyle = FontStyle.Bold;
+            speakerLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
             RectTransform speakerRect = speakerLabel.rectTransform;
-            speakerRect.anchorMin = new Vector2(0f, 1f);
-            speakerRect.anchorMax = new Vector2(1f, 1f);
-            speakerRect.pivot = new Vector2(0f, 1f);
-            speakerRect.offsetMin = new Vector2(padding, -padding - speakerFontSize * 1.3f);
-            speakerRect.offsetMax = new Vector2(-padding, -padding);
+            speakerRect.anchorMin = Vector2.zero;
+            speakerRect.anchorMax = Vector2.one;
+            speakerRect.offsetMin = Vector2.zero;
+            speakerRect.offsetMax = Vector2.zero;
 
             body = Label("Text", box, fontSize, TextAnchor.UpperLeft);
             body.supportRichText = true;
@@ -570,15 +577,6 @@ namespace LightAndShadow
             bodyRect.anchorMax = Vector2.one;
             bodyRect.offsetMin = new Vector2(padding, padding);
             bodyRect.offsetMax = new Vector2(-padding, -padding);
-
-            continueMarker = new GameObject("Continue", typeof(RectTransform)).AddComponent<Image>();
-            continueMarker.color = foreground;
-            RectTransform markerRect = continueMarker.rectTransform;
-            markerRect.SetParent(box, false);
-            markerRect.anchorMin = markerRect.anchorMax = new Vector2(1f, 0f);
-            markerRect.pivot = new Vector2(1f, 0f);
-            markerRect.sizeDelta = new Vector2(14f, 14f);
-            markerRect.anchoredPosition = new Vector2(-padding * 0.75f, padding * 0.75f);
 
             // The choices sit centred just above the box.
             choiceRow = new GameObject("Choices", typeof(RectTransform)).GetComponent<RectTransform>();

@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d45800b5913bbb74284a98c5267fa682, type: 3}
+  m_Name: HammerFall
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.HammerRainPattern
+  delayAfter: 0
+  attackAnimation: HammerRaise
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  raiseBlend: 0.6
+  raiseTime: 1
+  lowerBlend: 0.5
+  duration: 7
+  interval: 0.8
+  arenaRadius: 12
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  drop:
+    hammerPrefab: {fileID: 5259286637870094825, guid: 3135c610fb70b1a4a91a8b6a30ef5e8b, type: 3}
+    dropHeight: 15
+    dropTime: 0.5
+    lingerTime: 0.3
+    radius: 1.5
+    fillTime: 0.5
+    outlineWidth: 0.1
+    floorOffset: 0.03
+    indicatorMaterial: {fileID: 0}
+    indicatorColour: {r: 1, g: 0.04, b: 0.08, a: 1}
+    projectilePrefab: {fileID: 4683515996178420819, guid: b87fbe5bbdc79134787226b476b138e5, type: 3}
+    projectileCount: 6
+    angleOffset: 0
+    projectileHeight: 1
+    impactMaterial: {fileID: 0}
+    impact:
+      ringRadius: 2.5
+      ringWidth: 0.6
+      ringTime: 0.35
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.4
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.2
+    shakeDuration: 0.2

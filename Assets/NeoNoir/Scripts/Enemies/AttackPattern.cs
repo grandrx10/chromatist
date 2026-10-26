@@ -61,7 +61,7 @@ namespace LightAndShadow
         [SerializeField]
         [Tooltip("Seconds the enemy waits after this attack finishes before starting its next one.")]
         [Min(0f)]
-        private float delayAfter = 5f;
+        protected float delayAfter = 5f;
 
         [SerializeField]
         [Tooltip("Animator state played for the attack. The enemy goes back to its idle state when the attack ends. Empty plays nothing.")]
@@ -74,6 +74,12 @@ namespace LightAndShadow
         public string AttackAnimation => attackAnimation;
 
         public MovementSettings Movement => movement;
+
+        /// <summary>Seconds to blend into <see cref="AttackAnimation"/>. Negative uses the enemy's usual blend.</summary>
+        public virtual float AttackAnimationBlend => -1f;
+
+        /// <summary>Seconds to blend back to idle once the attack ends. Negative uses the enemy's usual blend.</summary>
+        public virtual float IdleReturnBlend => -1f;
 
         /// <summary>
         /// Plays the attack out. The enemy waits for it to finish before

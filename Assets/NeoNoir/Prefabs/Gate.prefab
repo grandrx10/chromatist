@@ -2934,6 +2934,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.Gate
   detectionPoint: {fileID: 951336378006317122}
   detectionRadius: 7
-  raiseHeight: 4
+  raiseHeight: 6
   raiseDuration: 1.5
   player: {fileID: 0}
+  lockedByBoss: {fileID: 0}
+  closeDuration: 0.4

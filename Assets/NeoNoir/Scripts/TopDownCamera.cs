@@ -19,6 +19,10 @@ namespace LightAndShadow
     /// Yaw is driven by Q and E. Because movement input is camera-relative,
     /// rotating the camera also rotates what WASD means -- which is what makes
     /// rotation feel like turning the world rather than sliding the view.
+    ///
+    /// <see cref="Shake"/> jolts the view without disturbing the follow: the
+    /// smoothed follow position is kept apart from the shake, so a shake
+    /// never drags the camera off its target.
     /// </remarks>
     [ExecuteAlways]
     [RequireComponent(typeof(Camera))]
@@ -72,9 +76,22 @@ namespace LightAndShadow
         [Tooltip("Target speed treated as full lead.")]
         private float lookAheadReferenceSpeed = 9f;
 
+        [Header("Shake")]
+        [SerializeField]
+        [Tooltip("How many times a second a shake jolts back and forth.")]
+        [Min(0.1f)]
+        private float shakeFrequency = 25f;
+
         [Header("Occlusion")]
         [SerializeField] private OccluderFader occlusion = new OccluderFader();
 
+        // Shared by every camera, so whoever triggers a shake needs no
+        // reference to one.
+        private static float shakeStrength;
+        private static float shakeDuration;
+        private static float shakeStartTime;
+
+        private Vector3 followPosition;
         private Vector3 followVelocity;
         private Vector3 lookAhead;
         private Vector3 lookAheadVelocity;
@@ -92,6 +109,35 @@ namespace LightAndShadow
                 targetInput = target != null ? target.GetComponent<PlayerInputReader>() : null;
                 SnapToTarget();
             }
+        }
+
+        /// <summary>
+        /// Shakes the camera by up to <paramref name="strength"/> units,
+        /// dying away over <paramref name="duration"/> seconds. A weaker
+        /// shake never cuts a stronger one short.
+        /// </summary>
+        public static void Shake(float strength, float duration)
+        {
+            if (strength <= 0f || duration <= 0f || strength < CurrentShake())
+            {
+                return;
+            }
+
+            shakeStrength = strength;
+            shakeDuration = duration;
+            shakeStartTime = Time.time;
+        }
+
+        /// <summary>How far a shake can move the camera right now: its strength, eased down to nothing.</summary>
+        private static float CurrentShake()
+        {
+            if (shakeDuration <= 0f)
+            {
+                return 0f;
+            }
+
+            float remaining = 1f - (Time.time - shakeStartTime) / shakeDuration;
+            return remaining > 0f ? shakeStrength * remaining * remaining : 0f;
         }
 
         private void OnEnable()
@@ -134,11 +180,11 @@ namespace LightAndShadow
 
             Vector3 desired = focus - rotation * Vector3.forward * distance;
 
-            transform.SetPositionAndRotation(
-                followSmoothTime > 0f
-                    ? Vector3.SmoothDamp(transform.position, desired, ref followVelocity, followSmoothTime)
-                    : desired,
-                rotation);
+            followPosition = followSmoothTime > 0f
+                ? Vector3.SmoothDamp(followPosition, desired, ref followVelocity, followSmoothTime)
+                : desired;
+
+            transform.SetPositionAndRotation(followPosition + ShakeOffset(rotation), rotation);
 
             occlusion.Update(transform.position, target, Time.unscaledDeltaTime);
         }
@@ -225,6 +271,23 @@ namespace LightAndShadow
             yaw = Mathf.Repeat(yaw + Mathf.Clamp(direction, -1f, 1f) * rotationSpeed * deltaTime, 360f);
         }
 
+        /// <summary>Sideways and up-down jolt across the screen for the current shake.</summary>
+        private Vector3 ShakeOffset(Quaternion rotation)
+        {
+            float amount = CurrentShake();
+
+            if (amount <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            float time = Time.time * shakeFrequency;
+            float x = Mathf.PerlinNoise(time, 0.37f) * 2f - 1f;
+            float y = Mathf.PerlinNoise(0.71f, time) * 2f - 1f;
+
+            return (rotation * new Vector3(x, y, 0f)) * amount;
+        }
+
         private Quaternion ResolveRotation()
         {
             return Quaternion.Euler(pitch, yaw, 0f);
@@ -264,7 +327,8 @@ namespace LightAndShadow
             Quaternion rotation = ResolveRotation();
             Vector3 focus = target.position + targetOffset;
 
-            transform.SetPositionAndRotation(focus - rotation * Vector3.forward * distance, rotation);
+            followPosition = focus - rotation * Vector3.forward * distance;
+            transform.SetPositionAndRotation(followPosition, rotation);
 
             followVelocity = Vector3.zero;
             lookAhead = Vector3.zero;

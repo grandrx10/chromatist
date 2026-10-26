@@ -179,7 +179,7 @@ namespace LightAndShadow
 
                 if (health != null)
                 {
-                    health.TakeDamage(damage);
+                    health.TakeDamage(damage, from);
                 }
 
                 Destroy(gameObject);

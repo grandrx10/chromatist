@@ -9,6 +9,11 @@ namespace LightAndShadow
     /// Opening is one-way: once triggered the gate stays up, so the player
     /// cannot get it to drop on them by stepping back out of range.
     ///
+    /// The one exception is a boss arena: give the gate a
+    /// <see cref="BossIntro"/> and, the moment that fight is triggered, the
+    /// gate slams shut -- open or not -- and stays shut until the boss dies.
+    /// After that it goes back to opening when the player comes near.
+    ///
     /// Distance is measured on the XZ plane so the player's height (jumps,
     /// stairs, pivot offset) does not affect when the gate opens.
     /// </remarks>
@@ -29,10 +34,20 @@ namespace LightAndShadow
         [Tooltip("Optional. Found automatically if left empty.")]
         [SerializeField] private Transform player;
 
+        [Header("Boss lock")]
+        [Tooltip("Optional. When this boss fight is triggered the gate shuts and cannot open until the boss is killed.")]
+        [SerializeField] private BossIntro lockedByBoss;
+
+        [Tooltip("Seconds the gate takes to slam shut when the boss fight starts.")]
+        [SerializeField] private float closeDuration = 0.4f;
+
         private Vector3 closedPosition;
         private Vector3 openPosition;
         private bool opening;
-        private float elapsed;
+        private bool locked;
+
+        // 0 is fully closed, 1 fully open.
+        private float openness;
 
         private void Awake()
         {
@@ -45,40 +60,71 @@ namespace LightAndShadow
             }
         }
 
+        private void OnEnable()
+        {
+            if (lockedByBoss != null)
+            {
+                lockedByBoss.Triggered += OnBossTriggered;
+                lockedByBoss.Defeated += OnBossDefeated;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (lockedByBoss != null)
+            {
+                lockedByBoss.Triggered -= OnBossTriggered;
+                lockedByBoss.Defeated -= OnBossDefeated;
+            }
+        }
+
+        private void OnBossTriggered(BossIntro intro)
+        {
+            locked = true;
+            opening = false;
+        }
+
+        private void OnBossDefeated(BossIntro intro)
+        {
+            locked = false;
+        }
+
         private void Update()
         {
-            if (!opening)
+            if (!opening && !locked)
             {
-                if (player == null)
-                {
-                    PlayerMotor motor = FindFirstObjectByType<PlayerMotor>(FindObjectsInactive.Exclude);
-                    if (motor == null)
-                    {
-                        return;
-                    }
-                    player = motor.transform;
-                }
-
-                Vector3 offset = player.position - detectionPoint.position;
-                offset.y = 0f;
-
-                if (offset.sqrMagnitude <= detectionRadius * detectionRadius)
-                {
-                    opening = true;
-                }
-                return;
+                opening = PlayerInRange();
             }
 
-            if (elapsed >= raiseDuration)
+            float target = opening ? 1f : 0f;
+
+            if (openness == target)
             {
                 return;
             }
 
-            elapsed += Time.deltaTime;
+            // Guard against zero so a mistyped duration snaps instead of dividing by zero.
+            float duration = Mathf.Max(0.0001f, opening ? raiseDuration : closeDuration);
+            openness = Mathf.MoveTowards(openness, target, Time.deltaTime / duration);
+            transform.position = Vector3.Lerp(closedPosition, openPosition, Mathf.SmoothStep(0f, 1f, openness));
+        }
 
-            // Guard against zero so a mistyped duration snaps open instead of dividing by zero.
-            float t = Mathf.Clamp01(elapsed / Mathf.Max(0.0001f, raiseDuration));
-            transform.position = Vector3.Lerp(closedPosition, openPosition, Mathf.SmoothStep(0f, 1f, t));
+        private bool PlayerInRange()
+        {
+            if (player == null)
+            {
+                PlayerMotor motor = FindFirstObjectByType<PlayerMotor>(FindObjectsInactive.Exclude);
+                if (motor == null)
+                {
+                    return false;
+                }
+                player = motor.transform;
+            }
+
+            Vector3 offset = player.position - detectionPoint.position;
+            offset.y = 0f;
+
+            return offset.sqrMagnitude <= detectionRadius * detectionRadius;
         }
 
         private void OnDrawGizmosSelected()
@@ -86,6 +132,12 @@ namespace LightAndShadow
             Transform point = detectionPoint != null ? detectionPoint : transform;
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(point.position, detectionRadius);
+
+            if (lockedByBoss != null)
+            {
+                Gizmos.color = new Color(1f, 0.25f, 0.2f, 0.8f);
+                Gizmos.DrawLine(transform.position, lockedByBoss.transform.position);
+            }
         }
     }
 }

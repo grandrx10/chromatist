@@ -77,7 +77,7 @@ MonoBehaviour:
   followTime: 0.3
   engageTime: 0.12
   releaseTime: 0.3
-  damage: 10
+  damage: 15
   throwSpeed: 22
   minRange: 1
   maxRange: 25

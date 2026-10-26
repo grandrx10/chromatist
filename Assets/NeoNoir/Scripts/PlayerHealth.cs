@@ -28,6 +28,13 @@ namespace LightAndShadow
         /// <summary>Raised after damage is applied, with the amount actually lost.</summary>
         public event Action<PlayerHealth, float> Damaged;
 
+        /// <summary>
+        /// <see cref="Damaged"/> for every player at once, with where the hit
+        /// came from when the damage said, so effects can hear it without a
+        /// reference to the player.
+        /// </summary>
+        public static event Action<PlayerHealth, float, Vector3?> AnyDamaged;
+
         /// <summary>Raised after healing is applied, with the amount actually restored.</summary>
         public event Action<PlayerHealth, float> Healed;
 
@@ -83,9 +90,11 @@ namespace LightAndShadow
         /// <summary>
         /// Deals damage, scaled by <see cref="DamageTakenMultiplier"/>.
         /// Returns the amount actually lost, which is less than asked when it
-        /// runs out, and 0 when already dead.
+        /// runs out, and 0 when already dead. <paramref name="source"/> is
+        /// where the hit came from, for effects; leave it out when there is no
+        /// such place.
         /// </summary>
-        public float TakeDamage(float amount)
+        public float TakeDamage(float amount, Vector3? source = null)
         {
             amount *= DamageTakenMultiplier;
 
@@ -97,6 +106,7 @@ namespace LightAndShadow
             float lost = Mathf.Min(amount, CurrentHealth);
             CurrentHealth -= lost;
             Damaged?.Invoke(this, lost);
+            AnyDamaged?.Invoke(this, lost, source);
 
             if (IsDead)
             {

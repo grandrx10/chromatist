@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f3f17951a581654baa85f41222f3ee9, type: 3}
+  m_Name: HammerWhirl
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.HammerWhirlPattern
+  delayAfter: 0
+  attackAnimation: HammerSwing
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  duration: 10
+  spinSpeed: 1080
+  acceleration: 12
+  maxSpeed: 20
+  dashInterval: 5
+  dashSpeed: 17
+  chargeTime: 0.6
+  chargeBraking: 15
+  chargeSpinMultiplier: 2
+  chargeGlowMultiplier: 2.5
+  chargeRing:
+    rings: 3
+    startRadius: 5
+    endRadius: 1
+    startWidth: 0.1
+    endWidth: 0.45
+    floorOffset: 0.06
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    material: {fileID: 0}
+  shotPrefab: {fileID: 4683515996178420819, guid: b87fbe5bbdc79134787226b476b138e5, type: 3}
+  shotsPerRound: 6
+  roundsPerBurst: 6
+  roundInterval: 0.15
+  roundAngleStep: 3
+  burstTiming: 0.5
+  shotHeight: 1
+  hammerName: HammerBig
+  glowColour: {r: 3, g: 0.1, b: 0.05, a: 1}
+  glowMaterial: {fileID: 0}
+  glowFadeIn: 0.5
+  glowFadeOut: 0.4
+  trails:
+    count: 3
+    width: 0.8
+    time: 0.25
+    colour: {r: 1.5, g: 1.5, b: 1.5, a: 1}
+    material: {fileID: 0}
+  damage: 20
+  hitPadding: 0.5
+  hitInterval: 1
+  knockbackSpeed: 14
+  knockbackTime: 0.4
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 1
+  castRadius: 0.8
+  castHeight: 1
+  bounceKeep: 0.8
+  impactMaterial: {fileID: 0}
+  impact:
+    ringRadius: 3.5
+    ringWidth: 0.6
+    ringTime: 0.35
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 8
+    debrisSize: 0.4
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 2, y: 5}
+    debrisGravity: 25
+    debrisTime: 0.6
+    debrisIntensity: 1.5
+  shakeStrength: 0.25
+  shakeDuration: 0.25
+  dust:
+    spacing: 0.4
+    puffsPerStep: 2
+    minSpeed: 3
+    size: 0.35
+    lifetime: 0.5
+    rise: 0.8
+    drag: 0.15
+    spread: 1.2
+    colour: {r: 1, g: 1, b: 1, a: 1}
+    material: {fileID: 0}

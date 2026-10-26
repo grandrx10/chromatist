@@ -2165,9 +2165,9 @@ MonoBehaviour:
     stepRadius: 0.45
     lifetime: 12
     wiltTime: 0.3
-    damage: 5
+    damage: 7
     burstRadius: 1
-    heal: 5
+    heal: 3
     damageWhenPlayerSteps: 0
     slashEffect: 1
     petals: 8
@@ -2205,6 +2205,21 @@ MonoBehaviour:
   hoverLinger: 0.2
   hoverRotation: {x: 0, y: 0, z: 0}
   hoverEngageTime: 0.15
+  killPetals: 16
+  killPetal:
+    spacing: 0.25
+    size: {x: 0.16, y: 0.3}
+    scatter: 0.3
+    burstSpeed: 3
+    carrySpeed: 3.5
+    drag: 4
+    fallSpeed: 0.3
+    flutter: 0.15
+    flutterRate: 1.2
+    spin: 240
+    floatTime: 0.5
+    floatJitter: 0.5
+    fadeTime: 0.6
   effectMaterial: {fileID: 0}
   lotusModel: {fileID: 2189733109407162466, guid: a23d6536ceb2f1d498d824a13d8eb80e, type: 3}
   sageColour: {r: 0.45, g: 1, b: 0.55, a: 1}

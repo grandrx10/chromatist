@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7355422acbdb8d74a90aa1a315abe994, type: 3}
+  m_Name: HammerCenter
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.HammerCenterPattern
+  delayAfter: 0
+  attackAnimation: HammerAscend
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  windup: 1
+  riseHeight: 30
+  riseTime: 0.5
+  dropHeight: 30
+  dropTime: 0.6
+  descendAnimation: HammerDescend
+  getUpAnimation: HammerEntry
+  getUpBlend: 0.05
+  landingHeightOffset: 0
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  fillTime: 2
+  indicatorRadius: 6
+  outlineWidth: 0.2
+  floorOffset: 0.03
+  indicatorMaterial: {fileID: 0}
+  indicatorColour: {r: 1, g: 0.04, b: 0.08, a: 1}
+  impactMaterial: {fileID: 0}
+  impact:
+    ringRadius: 7
+    ringWidth: 1.2
+    ringTime: 0.5
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 16
+    debrisSize: 0.6
+    debrisUpSpeed: {x: 7, y: 12}
+    debrisOutSpeed: {x: 3, y: 8}
+    debrisGravity: 25
+    debrisTime: 0.9
+    debrisIntensity: 1.5
+  shakeStrength: 0.9
+  shakeDuration: 0.6
+  waveCount: 8
+  angleOffset: 0
+  waveStartDistance: 2.5
+  ripple:
+    cubePrefab: {fileID: 5259286637870094825, guid: 139b3f124eb019e4583347783d5cf098, type: 3}
+    count: 10
+    spacing: 3
+    interval: 0.1
+    curvePerCube: 12
+    damage: 10
+    parryStopsWave: 1
+    startOffset: -1.6
+    riseHeight: 0.5
+    riseTime: 0.12
+    fallTime: 0.4
+  recovery: 0.5

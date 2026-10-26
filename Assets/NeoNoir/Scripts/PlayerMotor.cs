@@ -59,6 +59,7 @@ namespace LightAndShadow
 
         private Rigidbody body;
         private PlayerInputReader input;
+        private DustTrail dust;
 
         private Vector3 driveVelocity;
         private Vector3 dashVelocity;
@@ -155,6 +156,9 @@ namespace LightAndShadow
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
             facing = transform.forward;
+
+            // Add a DustTrail to the player by hand to change how it looks.
+            dust = DustTrail.On(gameObject);
         }
 
         private void Update()
@@ -163,6 +167,12 @@ namespace LightAndShadow
             {
                 Dash(input.MoveWorld);
                 input.ConsumeDash();
+            }
+
+            // Every dash, the button's and abilities' alike.
+            if (IsDashing)
+            {
+                dust.KeepEmitting();
             }
         }
 
