@@ -20,7 +20,8 @@ namespace LightAndShadow.EditorTools
     /// bones that are siblings of the root, like the legs, are found too. A
     /// bone the new rig lacks falls back to its nearest ancestor that it does
     /// have, and the console lists each one, so nothing is left pointing at
-    /// the old rig.
+    /// the old rig. Bones that are already missing (the old rig was deleted)
+    /// are looked up by name in the model the mesh was imported from.
     ///
     /// Undoable. Only names are matched, so the two rigs should come from the
     /// same skeleton; the mesh's bind poses are left alone, so it sits on the
@@ -54,11 +55,17 @@ namespace LightAndShadow.EditorTools
             }
 
             Transform[] bones = skin.bones;
+            Transform[] sourceBones = FindSourceBones(skin);
             int moved = 0;
 
             for (int i = 0; i < bones.Length; i++)
             {
                 Transform old = bones[i];
+
+                if (old == null && sourceBones != null && i < sourceBones.Length)
+                {
+                    old = sourceBones[i];
+                }
 
                 if (old == null || old.IsChildOf(rig))
                 {
@@ -92,6 +99,37 @@ namespace LightAndShadow.EditorTools
             EditorUtility.SetDirty(skin);
 
             Debug.Log($"[Rebind] Moved {moved} of {bones.Length} bones on {skin.name} onto {rig.name}.", skin);
+        }
+
+        /// <summary>
+        /// The bones the mesh was skinned to in the model it was imported
+        /// from, in Bones-list order, or null if it can't be found. Lets a
+        /// mesh whose old rig has been deleted still be matched by name.
+        /// </summary>
+        private static Transform[] FindSourceBones(SkinnedMeshRenderer skin)
+        {
+            if (skin.sharedMesh == null)
+            {
+                return null;
+            }
+
+            string path = AssetDatabase.GetAssetPath(skin.sharedMesh);
+            GameObject model = string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+            if (model == null)
+            {
+                return null;
+            }
+
+            foreach (SkinnedMeshRenderer source in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (source.sharedMesh == skin.sharedMesh)
+                {
+                    return source.bones;
+                }
+            }
+
+            return null;
         }
     }
 }

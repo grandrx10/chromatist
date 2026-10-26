@@ -25,11 +25,13 @@ namespace LightAndShadow
     /// is fairer than chasing the hammer's exact pose, and needs no collider
     /// of its own.
     ///
-    /// A hit, or a parry, uses up the hammer for <see cref="hitInterval"/>
-    /// seconds: nothing is hurt and nothing is parried until it is ready
-    /// again. So a player inside the swing loses health once a second at
-    /// most, and one parry turns the boss away once, however many times the
-    /// spinning hammer passes through the barrier while it is up.
+    /// A hit, or a parry, stops the hammer hurting for
+    /// <see cref="hitInterval"/> seconds, so a player inside the swing loses
+    /// health once a second at most. Parrying has its own, separate wait of
+    /// the same length -- one parry turns the boss away once, however many
+    /// times the spinning hammer passes through the barrier while it is up --
+    /// but a hit never stops a parry: a player just hit can still raise the
+    /// barrier and turn the boss away.
     ///
     /// The barrier is checked before the player, so a parried swing never
     /// hurts, even when both are touched in the same frame. A barrier
@@ -68,6 +70,7 @@ namespace LightAndShadow
         private float damage;
         private float hitInterval;
         private float cooldown;
+        private float parryCooldown;
 
         private Vector3 localCentre;
         private Vector3 localHalfSize = Vector3.one * 0.5f;
@@ -86,10 +89,10 @@ namespace LightAndShadow
         private readonly List<TrailRenderer> trails = new List<TrailRenderer>();
 
         /// <summary>
-        /// Raised when a barrier catches the hammer, with the velocity it
-        /// came in at.
+        /// Raised when a barrier catches the hammer, with the point on the
+        /// rim of the swing nearest the player, and the velocity it came in at.
         /// </summary>
-        public event Action<Vector3> Parried;
+        public event Action<Vector3, Vector3> Parried;
 
         /// <summary>Multiplies the glow's brightness. 1 is as armed.</summary>
         public float GlowIntensity
@@ -122,6 +125,7 @@ namespace LightAndShadow
             hitInterval = Mathf.Max(0f, interval);
             padding = Mathf.Max(0f, reachPadding);
             cooldown = 0f;
+            parryCooldown = 0f;
 
             body = owner.GetComponent<Collider>();
             reach = body != null ? Mathf.Max(body.bounds.extents.x, body.bounds.extents.z) : 0f;
@@ -292,14 +296,12 @@ namespace LightAndShadow
 
             float deltaTime = Time.deltaTime;
             cooldown -= deltaTime;
+            parryCooldown -= deltaTime;
 
             Vector3 pivot = owner.Model.position;
             MeasureZone(pivot);
 
-            if (cooldown <= 0f)
-            {
-                Strike(pivot, deltaTime);
-            }
+            Strike(pivot, deltaTime);
 
             lastPivot = pivot;
         }
@@ -318,10 +320,18 @@ namespace LightAndShadow
             toward.y = 0f;
             Vector3 velocity = toward.sqrMagnitude > 0.0001f ? toward.normalized * 10f : Vector3.zero;
 
-            if (ParryBarrier.TryCatch(from, to, radius, velocity))
+            if (parryCooldown <= 0f && ParryBarrier.TryCatch(from, to, radius, velocity))
             {
+                parryCooldown = hitInterval;
                 cooldown = hitInterval;
-                Parried?.Invoke(velocity);
+
+                Vector3 rim = velocity.sqrMagnitude > 0.0001f ? to + velocity.normalized * radius : to;
+                Parried?.Invoke(rim, velocity);
+                return;
+            }
+
+            if (cooldown > 0f)
+            {
                 return;
             }
 

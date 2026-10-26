@@ -48,9 +48,12 @@ namespace LightAndShadow
     /// lasts: glowing, trailing wind, and dealing <see cref="damage"/> to the
     /// player anywhere inside the circle it sweeps round the boss, plus
     /// <see cref="hitPadding"/>, at most once every <see cref="hitInterval"/>
-    /// seconds. Parrying it does not destroy it. The enemy is thrown straight
-    /// away from the player at <see cref="knockbackSpeed"/> and slides with
-    /// no steering for <see cref="knockbackTime"/>, then comes back round.
+    /// seconds. Parrying it does not destroy it. A burst and a camera shake
+    /// go off where it was caught, and the enemy is thrown straight away
+    /// from the player at <see cref="knockbackSpeed"/> and slides with no
+    /// steering, and no braking for a charge-up, for
+    /// <see cref="knockbackTime"/>, then comes back round. A dash still goes
+    /// when it is due.
     ///
     /// Lasts <see cref="duration"/> seconds, then ends at once: the spin
     /// stops and the next attack starts, with no delay after by default.
@@ -209,6 +212,22 @@ namespace LightAndShadow
         [Min(0f)]
         private float knockbackTime = 0.4f;
 
+        [SerializeField]
+        [Tooltip("Material for the burst where the hammer is parried. Empty uses the wall Impact Material below; with neither, no burst.")]
+        private Material parryImpactMaterial;
+
+        [SerializeField] private HammerImpact.Settings parryImpact = new HammerImpact.Settings();
+
+        [SerializeField]
+        [Tooltip("How far the camera shakes on a parry. 0 disables it.")]
+        [Min(0f)]
+        private float parryShakeStrength = 0.6f;
+
+        [SerializeField]
+        [Tooltip("Seconds the parry's camera shake takes to die away.")]
+        [Min(0.01f)]
+        private float parryShakeDuration = 0.3f;
+
         [Header("Walls")]
         [SerializeField]
         [Tooltip("What the whirl bounces off. Anything facing upward on it counts as floor and is ignored.")]
@@ -254,10 +273,15 @@ namespace LightAndShadow
             WallContacts contacts = WallContacts.On(enemy, wallMask);
             DustTrail trail = DustTrail.On(enemy.gameObject, dust);
             bool parried = false;
+            Vector3 parryPoint = Vector3.zero;
 
             if (hammer != null)
             {
-                hammer.Parried += _ => parried = true;
+                hammer.Parried += (point, _) =>
+                {
+                    parried = true;
+                    parryPoint = point;
+                };
             }
 
             enemy.SpinOverride = spinSpeed;
@@ -315,6 +339,14 @@ namespace LightAndShadow
                     velocity = AwayFromPlayer(enemy, velocity) * knockbackSpeed;
                     knockback = knockbackTime;
                     ResetWindow(enemy, ref windowStart, ref windowExpected, ref windowTime);
+                    ParryEffect(enemy, parryPoint);
+                }
+
+                bool sliding = knockback > 0f;
+
+                if (sliding)
+                {
+                    knockback -= deltaTime;
                 }
 
                 // Charge-up, then the dash itself.
@@ -351,16 +383,12 @@ namespace LightAndShadow
                             hammer.GlowIntensity = 1f;
                         }
                     }
-                    else
+                    else if (!sliding)
                     {
                         velocity = Vector3.MoveTowards(velocity, Vector3.zero, chargeBraking * deltaTime);
                     }
                 }
-                else if (knockback > 0f)
-                {
-                    knockback -= deltaTime;
-                }
-                else if (enemy.HasTarget)
+                else if (!sliding && enemy.HasTarget)
                 {
                     Vector3 toTarget = Flat(enemy.Target.position - enemy.transform.position);
 
@@ -414,6 +442,21 @@ namespace LightAndShadow
             if (hammer != null)
             {
                 Destroy(hammer);
+            }
+        }
+
+        private void ParryEffect(Enemy enemy, Vector3 point)
+        {
+            Material material = parryImpactMaterial != null ? parryImpactMaterial : impactMaterial;
+
+            if (material != null)
+            {
+                HammerImpact.Create(new Vector3(point.x, FloorHeight(enemy), point.z), parryImpact, material);
+            }
+
+            if (parryShakeStrength > 0f)
+            {
+                TopDownCamera.Shake(parryShakeStrength, parryShakeDuration);
             }
         }
 
