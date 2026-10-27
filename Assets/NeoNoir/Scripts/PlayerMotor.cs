@@ -155,10 +155,45 @@ namespace LightAndShadow
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
+            ApplyFrictionlessMaterial();
+
             facing = transform.forward;
 
             // Add a DustTrail to the player by hand to change how it looks.
             dust = DustTrail.On(gameObject);
+        }
+
+        /// <summary>
+        /// Velocity is set directly every step, so friction does nothing useful
+        /// here -- it only grabs the character against walls and stops it
+        /// sliding along them. Minimum combine means the wall's own material
+        /// cannot add friction back. Colliders given a material by hand keep it.
+        /// </summary>
+        private void ApplyFrictionlessMaterial()
+        {
+            PhysicsMaterial frictionless = null;
+
+            foreach (Collider collider in GetComponentsInChildren<Collider>())
+            {
+                if (collider.isTrigger || collider.sharedMaterial != null)
+                {
+                    continue;
+                }
+
+                if (frictionless == null)
+                {
+                    frictionless = new PhysicsMaterial("PlayerFrictionless")
+                    {
+                        dynamicFriction = 0f,
+                        staticFriction = 0f,
+                        bounciness = 0f,
+                        frictionCombine = PhysicsMaterialCombine.Minimum,
+                        bounceCombine = PhysicsMaterialCombine.Minimum,
+                    };
+                }
+
+                collider.sharedMaterial = frictionless;
+            }
         }
 
         private void Update()

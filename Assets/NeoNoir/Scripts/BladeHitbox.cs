@@ -93,7 +93,7 @@ namespace LightAndShadow
                 return;
             }
 
-            EnemyHealth enemy = other.GetComponentInParent<EnemyHealth>();
+            EnemyHealth enemy = EnemyHealth.Of(other);
 
             if (enemy == null || enemy.IsDead || !hitThisStrike.Add(enemy))
             {

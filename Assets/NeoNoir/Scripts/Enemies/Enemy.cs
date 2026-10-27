@@ -15,7 +15,9 @@ namespace LightAndShadow
     /// percentage, and the enemy is in the phase with the lowest start
     /// percentage it has dropped to. So a boss with phases at 100, 60 and 25
     /// is in the first until it falls to 60%, the second until 25%, then the
-    /// third. The order of the list does not matter.
+    /// third. The order of the list does not matter. Phases only ever move
+    /// on: healing back above a threshold, as a <see cref="WitchHealPattern"/>
+    /// does, never returns the enemy to an earlier phase.
     ///
     /// Within a phase, attacks run one at a time in list order and loop. Each
     /// attack plays out fully, then the enemy waits that attack's
@@ -104,10 +106,13 @@ namespace LightAndShadow
         [SerializeField]
         private List<Phase> phases = new List<Phase> { new Phase { name = "Phase 1" } };
 
+        /// <summary>The idle state used when the Idle Animation field is left empty.</summary>
+        public const string DefaultIdleAnimation = "GuardIdle";
+
         [Header("Animation")]
         [SerializeField]
-        [Tooltip("Animator state played whenever the enemy is not attacking.")]
-        private string idleAnimation = "GuardIdle";
+        [Tooltip("Animator state played whenever the enemy is not attacking. Empty uses GuardIdle.")]
+        private string idleAnimation = DefaultIdleAnimation;
 
         [SerializeField]
         [Tooltip("Seconds to blend between animations.")]
@@ -123,13 +128,34 @@ namespace LightAndShadow
         [Min(0f)]
         private float speedSmoothing = 0.1f;
 
+        [Header("Ledges")]
+        [SerializeField]
+        [Tooltip("Stops the enemy walking or charging off the edge of the floor. Stairs and ramps still work.")]
+        private bool stayOnFloor = true;
+
+        [SerializeField]
+        [Tooltip("What counts as floor. Narrow this to a Ground layer if props get mistaken for floor.")]
+        private LayerMask floorMask = ~0;
+
+        [SerializeField]
+        [Tooltip("Highest step up the enemy will walk onto.")]
+        [Min(0f)]
+        private float maxStepUp = 1f;
+
+        [SerializeField]
+        [Tooltip("Furthest drop the enemy will walk down. Anything deeper is treated as a ledge.")]
+        [Min(0f)]
+        private float maxStepDown = 1f;
+
         private EnemyHealth health;
         private Rigidbody body;
+        private Collider bodyCollider;
         private Collider targetCollider;
         private int phaseIndex = -1;
 
         // Movement of the current attack, from its start until the next's.
         private AttackPattern.MovementSettings movement;
+        private readonly AttackPattern.MovementSettings approach = new AttackPattern.MovementSettings { type = MovementType.Chase };
         private Vector3 movementAnchor;
         private Vector3 wanderPoint;
         private float wanderTimer;
@@ -246,6 +272,7 @@ namespace LightAndShadow
         {
             health = GetComponent<EnemyHealth>();
             body = GetComponent<Rigidbody>();
+            bodyCollider = GetComponent<Collider>();
 
             if (body != null && body.interpolation == RigidbodyInterpolation.None)
             {
@@ -292,7 +319,7 @@ namespace LightAndShadow
             movement = null;
             ClearOverrides();
             lastPosition = transform.position;
-            PlayAnimation(idleAnimation);
+            PlayAnimation(IdleAnimation);
             StartCoroutine(Run());
         }
 
@@ -380,6 +407,11 @@ namespace LightAndShadow
                 ? Flat(VelocityOverride.Value)
                 : DesiredVelocity(Time.fixedDeltaTime);
 
+            if (stayOnFloor)
+            {
+                velocity = KeepOnFloor(velocity, Time.fixedDeltaTime);
+            }
+
             if (body != null && !body.isKinematic)
             {
                 // Planar only: gravity keeps the vertical.
@@ -389,6 +421,26 @@ namespace LightAndShadow
             {
                 transform.position += velocity * Time.fixedDeltaTime;
             }
+        }
+
+        /// <summary>
+        /// <paramref name="velocity"/>, bent along the edge of the floor if it
+        /// would carry the enemy off. Measured from the root collider when
+        /// there is one, else from the pivot as the feet.
+        /// </summary>
+        private Vector3 KeepOnFloor(Vector3 velocity, float deltaTime)
+        {
+            Vector3 feet = transform.position;
+            float radius = 0.5f;
+
+            if (bodyCollider != null && bodyCollider.enabled)
+            {
+                Bounds bounds = bodyCollider.bounds;
+                feet = new Vector3(bounds.center.x, bounds.min.y, bounds.center.z);
+                radius = Mathf.Min(bounds.extents.x, bounds.extents.z);
+            }
+
+            return FloorProbe.KeepOnFloor(transform, feet, radius, velocity, deltaTime, maxStepUp, maxStepDown, floorMask);
         }
 
         private void Halt()
@@ -511,6 +563,36 @@ namespace LightAndShadow
         }
 
         /// <summary>
+        /// Plays <paramref name="state"/> from its start even if it is already
+        /// playing, as a combo throwing the same strike twice running needs:
+        /// a cross-fade into the state already playing does not restart it.
+        /// </summary>
+        public void RestartAnimation(string state)
+        {
+            if (animator == null || string.IsNullOrEmpty(state))
+            {
+                return;
+            }
+
+            int hash = Animator.StringToHash(state);
+
+            if (!animator.HasState(0, hash))
+            {
+                Debug.LogWarning($"[Enemy] {name}'s animator has no state called \"{state}\".", this);
+                return;
+            }
+
+            if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash == hash || animator.IsInTransition(0))
+            {
+                animator.Play(hash, 0, 0f);
+            }
+            else
+            {
+                animator.CrossFadeInFixedTime(hash, Mathf.Max(0f, animationBlend), 0);
+            }
+        }
+
+        /// <summary>
         /// Waits until <paramref name="state"/> has played to its end, or the
         /// animator has moved on from it by itself. Returns at once if there
         /// is no such state.
@@ -561,11 +643,12 @@ namespace LightAndShadow
         }
 
         /// <summary>Animator state the enemy plays whenever it is not attacking.</summary>
-        public string IdleAnimation => idleAnimation;
+        /// <summary>The idle state: the one set on this enemy, or <see cref="DefaultIdleAnimation"/> if none is.</summary>
+        public string IdleAnimation => string.IsNullOrWhiteSpace(idleAnimation) ? DefaultIdleAnimation : idleAnimation.Trim();
 
         public void PlayIdleAnimation()
         {
-            PlayAnimation(idleAnimation);
+            PlayAnimation(IdleAnimation);
         }
 
         private IEnumerator Run()
@@ -601,6 +684,13 @@ namespace LightAndShadow
             {
                 int current = FindPhase();
 
+                // Healed back above the current phase's start: stay in it.
+                if (phaseIndex >= 0 && (current < 0 ||
+                    phases[current].startsAtHealthPercent > phases[phaseIndex].startsAtHealthPercent))
+                {
+                    current = phaseIndex;
+                }
+
                 if (current != phaseIndex)
                 {
                     phaseIndex = current;
@@ -622,6 +712,24 @@ namespace LightAndShadow
                     continue;
                 }
 
+                // Skipped outright. A frame's wait, so a phase whose every
+                // attack is skipped never spins inside one frame.
+                if (!pattern.CanPerform(this))
+                {
+                    yield return null;
+                    continue;
+                }
+
+                if (pattern.MaxRange > 0f && FlatDistanceToTarget() >= pattern.MaxRange)
+                {
+                    yield return Approach(pattern);
+
+                    if (!ResolveTarget())
+                    {
+                        continue;
+                    }
+                }
+
                 BeginMovement(pattern.Movement);
                 PlayAnimation(pattern.AttackAnimation, BlendOrDefault(pattern.AttackAnimationBlend));
 
@@ -629,7 +737,7 @@ namespace LightAndShadow
 
                 if (!string.IsNullOrEmpty(pattern.AttackAnimation))
                 {
-                    PlayAnimation(idleAnimation, BlendOrDefault(pattern.IdleReturnBlend));
+                    PlayAnimation(IdleAnimation, BlendOrDefault(pattern.IdleReturnBlend));
                 }
 
                 if (pattern.DelayAfter > 0f)
@@ -642,6 +750,31 @@ namespace LightAndShadow
                     yield return null;
                 }
             }
+        }
+
+        /// <summary>
+        /// Walks toward the player until within the attack's approach
+        /// distance, or until there is no player to walk toward.
+        /// </summary>
+        private IEnumerator Approach(AttackPattern pattern)
+        {
+            approach.speed = pattern.ApproachSpeed;
+            approach.stopDistance = pattern.ApproachDistance;
+            BeginMovement(approach);
+
+            // A little slack, as the chase eases to a stop right at the
+            // stop distance and may never quite reach it.
+            while (ResolveTarget() && FlatDistanceToTarget() > approach.stopDistance + 0.1f)
+            {
+                yield return null;
+            }
+
+            movement = null;
+        }
+
+        private float FlatDistanceToTarget()
+        {
+            return Flat(target.position - transform.position).magnitude;
         }
 
         private float BlendOrDefault(float blend)

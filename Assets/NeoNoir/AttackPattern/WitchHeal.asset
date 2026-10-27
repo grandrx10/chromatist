@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1970ff3070016e0439692c6576e8cf7d, type: 3}
+  m_Name: WitchHeal
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.WitchHealPattern
+  delayAfter: 5
+  attackAnimation: WitchHeal
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  duration: 3
+  runeStartTime: 0.3
+  healPerAltar: 100
+  runesPerAltar: 10
+  cutOffFade: 0.25
+  arc:
+    arcHeight: 3
+    spacing: 1.5
+    runeSize: 0.7
+    lineWidth: 0.06
+    colour: {r: 4, g: 0.35, b: 0.3, a: 1}
+    material: {fileID: 0}
+    flowSpeed: 5
+    runeDrawTime: 0.3
+    writeFlash: 1.5
+    flashTime: 0.4
+    fadeDistance: 1
+  absorbFlash:
+    flashSize: 0.6
+    flashTime: 0.12
+    sparkCount: 4
+    sparkSize: 0.15
+    sparkSpeed: {x: 2, y: 4}
+    sparkLife: 0.2
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+  shieldPrefab: {fileID: 3401754283746201001, guid: 819a1d1b7d6adca4e9fb915f2a5e97b1, type: 3}
+  shield:
+    padding: 0.5
+    colour: {r: 4, g: 0.25, b: 0.2, a: 1}
+    appearTime: 0.2
+    popScale: 0.85
+    fadeTime: 0.3
+  circleFadeTime: 0.8
+  circle:
+    radius: 3
+    runeCount: 15
+    runeSize: 1.1
+    showRings: 0
+    showDiamonds: 0
+    innerRadius: 0.66
+    ringWidth: 0.12
+    runeWidth: 0.09
+    colour: {r: 4, g: 0.35, b: 0.3, a: 1}
+    material: {fileID: 0}
+    drawTime: 1
+    chargingBrightness: 0.3
+    chargeCatchUp: 0.35
+    completeFlash: 1.5
+    flashTime: 0.6
+    pulseAmount: 0.25
+    pulseSpeed: 0.6
+    spinSpeed: 4
+    floorOffset: 0.03

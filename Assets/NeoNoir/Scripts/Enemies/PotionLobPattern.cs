@@ -9,6 +9,10 @@ namespace LightAndShadow
     /// </summary>
     /// <remarks>
     /// In order:
+    ///   0. If the player is further than <see cref="throwRange"/>, the enemy
+    ///      runs at them in its idle animation -- which blends into walking by
+    ///      speed -- until they are in range, or <see cref="maxApproachTime"/>
+    ///      runs out and it throws from wherever it got to.
     ///   1. The attack's own animation (PotionLob) plays, the enemy turning
     ///      toward the player as usual.
     ///   2. <see cref="releaseTime"/> seconds in, the potion in the hand
@@ -31,6 +35,22 @@ namespace LightAndShadow
     [CreateAssetMenu(menuName = "NeoNoir/Attacks/Potion Lob", fileName = "PotionLob")]
     public sealed class PotionLobPattern : AttackPattern
     {
+        [Header("Approach")]
+        [SerializeField]
+        [Tooltip("The enemy runs toward the player until they are this close, measured flat, before it starts the throw.")]
+        [Min(0f)]
+        private float throwRange = 20f;
+
+        [SerializeField]
+        [Tooltip("Units per second while running into range.")]
+        [Min(0f)]
+        private float approachSpeed = 5f;
+
+        [SerializeField]
+        [Tooltip("Seconds the enemy runs at most before throwing anyway, so a player it cannot reach -- across a gap -- still gets a potion.")]
+        [Min(0f)]
+        private float maxApproachTime = 6f;
+
         [Header("Throw")]
         [SerializeField]
         [Tooltip("Art for the thrown potion. Needs no scripts or colliders; it is given its own at the throw.")]
@@ -72,6 +92,12 @@ namespace LightAndShadow
 
         public override IEnumerator Perform(Enemy enemy)
         {
+            if (!InRange(enemy))
+            {
+                yield return Approach(enemy);
+                enemy.PlayAnimation(AttackAnimation);
+            }
+
             if (releaseTime > 0f)
             {
                 yield return new WaitForSeconds(releaseTime);
@@ -86,6 +112,38 @@ namespace LightAndShadow
             {
                 yield return new WaitForSeconds(recovery);
             }
+        }
+
+        private bool InRange(Enemy enemy)
+        {
+            if (!enemy.HasTarget)
+            {
+                return true;
+            }
+
+            Vector3 offset = enemy.Target.position - enemy.transform.position;
+            offset.y = 0f;
+            return offset.sqrMagnitude <= throwRange * throwRange;
+        }
+
+        /// <summary>Runs at the player, in the idle animation, until in range or out of time.</summary>
+        private IEnumerator Approach(Enemy enemy)
+        {
+            enemy.PlayIdleAnimation();
+
+            float elapsed = 0f;
+
+            while (!InRange(enemy) && elapsed < maxApproachTime)
+            {
+                Vector3 toTarget = enemy.Target.position - enemy.transform.position;
+                toTarget.y = 0f;
+                enemy.VelocityOverride = toTarget.normalized * approachSpeed;
+
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+
+            enemy.VelocityOverride = null;
         }
 
         private void Throw(Enemy enemy)
@@ -109,7 +167,7 @@ namespace LightAndShadow
             Vector2 offset = Random.insideUnitCircle * landingSpread;
             Vector3 aim = enemy.Target.position + new Vector3(offset.x, 0f, offset.y);
 
-            GameObject art = Instantiate(potionPrefab, from, Random.rotationUniform);
+            GameObject art = ArtPool.Take(potionPrefab, from, Random.rotationUniform);
             LobbedPotion.Throw(art, FindFloor(aim), enemy.transform, potion, pool, shatter);
         }
 

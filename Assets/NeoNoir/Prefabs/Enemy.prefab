@@ -1272,7 +1272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7879140b7146c34086a053b49669825, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.ProceduralHop
-  enemy: {fileID: 0}
+  enemy: {fileID: 6360503928981304619}
   hopLength: 10
   hopHeight: 0.1
   minSpeed: 0.2
@@ -1702,6 +1702,12 @@ MonoBehaviour:
   animationBlend: 0.1
   speedParameter: Speed
   speedSmoothing: 0.1
+  stayOnFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxStepUp: 1
+  maxStepDown: 1
 --- !u!114 &-1049044334206255383
 MonoBehaviour:
   m_ObjectHideFlags: 0

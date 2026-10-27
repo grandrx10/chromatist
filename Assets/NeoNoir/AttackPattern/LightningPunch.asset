@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a59c63edfdba2c042a698eeacfa65daa, type: 3}
+  m_Name: LightningPunch
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LightningPunchPattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  combo:
+  - hand: 0
+    dashStart: 0
+    homingEnds: 1.7
+    impactTime: 2
+  - hand: 0
+    dashStart: 0
+    homingEnds: 1.7
+    impactTime: 2
+  - hand: 0
+    dashStart: 0
+    homingEnds: 1.7
+    impactTime: 2
+  - hand: 1
+    dashStart: 0
+    homingEnds: 0.7
+    impactTime: 1
+  pauseAfter: 1.5
+  recovery: 0.6
+  rightAnimation: WitchRightPunch
+  leftAnimation: WitchLeftPunch
+  dashSpeed: 9
+  dashAcceleration: 20
+  stopDistance: 2
+  dust:
+    spacing: 0.4
+    puffsPerStep: 2
+    minSpeed: 3
+    size: 0.35
+    lifetime: 0.5
+    rise: 0.8
+    drag: 0.15
+    spread: 1.2
+    colour: {r: 1, g: 1, b: 1, a: 1}
+    material: {fileID: 0}
+  runeTrail:
+    spacing: 1
+    runesPerDrop: 1
+    halfWidth: 0.4
+    height: {x: -0.2, y: 0.4}
+    lifetime: 2
+    fadeTime: 0.5
+    damage: 6
+    radius: 0.5
+    pop:
+      flashSize: 0.4
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.15
+      sparkSpeed: {x: 2, y: 4}
+      sparkLife: 0.2
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    runeSize: 1.2
+    lineWidth: 0.1
+    bobHeight: 0.15
+    bobRate: 0.6
+    drift: {x: 0.05, y: 0.2}
+    sway: 8
+    writeTime: 0.1
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    material: {fileID: 0}
+  rightHandName: RightHandPoint
+  leftHandName: LeftHandPoint
+  circleAhead: 0.25
+  circleSpin: 180
+  circleEraseTime: 0.15
+  circle:
+    radius: 0.45
+    runeCount: 8
+    runeSize: 0.18
+    showRings: 0
+    showDiamonds: 0
+    innerRadius: 0.66
+    ringWidth: 0.03
+    runeWidth: 0.025
+    colour: {r: 4, g: 0.35, b: 0.3, a: 1}
+    material: {fileID: 0}
+    drawTime: 0.3
+    chargingBrightness: 0.3
+    chargeCatchUp: 0.35
+    completeFlash: 1.5
+    flashTime: 0.2
+    pulseAmount: 0.25
+    pulseSpeed: 0.6
+    spinSpeed: 0
+    floorOffset: 0
+  beam:
+    length: 30
+    radius: 1
+    wallMask:
+      serializedVersion: 2
+      m_Bits: 1
+    growTime: 0.15
+    holdTime: 0.65
+    shrinkTime: 0.2
+    damage: 20
+    hurtTime: 1
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    flash:
+      flashSize: 1.2
+      flashTime: 0.15
+      sparkCount: 8
+      sparkSize: 0.3
+      sparkSpeed: {x: 4, y: 8}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallBurst:
+      flashSize: 0.9
+      flashTime: 0.15
+      sparkCount: 8
+      sparkSize: 0.3
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    boltCount: 4
+    boltColour: {r: 0, g: 0, b: 0, a: 1}
+    boltWidth: 0.07
+    boltReach: {x: 0.9, y: 2}
+    boltStep: 0.7
+    flicker: 0.03
+  shakeStrength: 0.25
+  shakeDuration: 0.25

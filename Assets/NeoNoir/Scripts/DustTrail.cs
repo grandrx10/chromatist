@@ -108,7 +108,7 @@ namespace LightAndShadow
             body = GetComponent<Collider>();
             lastPosition = transform.position;
 
-            cloud = new GameObject("Dust (" + name + ")").AddComponent<Cloud>();
+            cloud = Cloud.Create("Dust (" + name + ")");
         }
 
         private void LateUpdate()
@@ -158,8 +158,12 @@ namespace LightAndShadow
             }
         }
 
-        /// <summary>Every live puff of one mover, drawn as one mesh.</summary>
-        private sealed class Cloud : MonoBehaviour
+        /// <summary>
+        /// Every live puff of one source, drawn as one mesh. Usable apart
+        /// from a trail: anything can <see cref="Create"/> one and
+        /// <see cref="Emit"/> into it.
+        /// </summary>
+        public sealed class Cloud : MonoBehaviour
         {
             private struct Puff
             {
@@ -188,10 +192,14 @@ namespace LightAndShadow
             private Color colour;
             private bool released;
 
+            /// <summary>A cloud on an object of its own, unparented.</summary>
+            public static Cloud Create(string label)
+            {
+                return new GameObject(label).AddComponent<Cloud>();
+            }
+
             public void Kick(Vector3 feet, Vector3 direction, Vector3 velocity, float footWidth, Settings settings)
             {
-                Setup(settings);
-
                 Vector3 side = Vector3.Cross(Vector3.up, direction);
 
                 for (int i = 0; i < settings.puffsPerStep; i++)
@@ -199,22 +207,37 @@ namespace LightAndShadow
                     float across = Random.Range(-1f, 1f);
                     float sign = across < 0f ? -1f : 1f;
 
-                    puffs.Add(new Puff
-                    {
-                        position = feet + side * (across * footWidth) + Vector3.up * (settings.size * 0.3f),
-                        velocity = -velocity * settings.drag
-                                   + side * (sign * settings.spread * Random.Range(0.4f, 1f))
-                                   + Vector3.up * (settings.rise * Random.Range(0.6f, 1.2f)),
-                        rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f),
-                        spinAxis = Random.onUnitSphere,
-                        spinSpeed = Random.Range(90f, 270f),
-                        size = settings.size * Random.Range(0.7f, 1.1f),
-                        lifetime = settings.lifetime * Random.Range(0.8f, 1.2f),
-                    });
+                    Emit(feet + side * (across * footWidth) + Vector3.up * (settings.size * 0.3f),
+                         -velocity * settings.drag
+                         + side * (sign * settings.spread * Random.Range(0.4f, 1f))
+                         + Vector3.up * (settings.rise * Random.Range(0.6f, 1.2f)),
+                         settings);
                 }
             }
 
-            /// <summary>The mover is gone: finish the puffs in flight, then go.</summary>
+            /// <summary>
+            /// One puff at <paramref name="position"/>, flung at
+            /// <paramref name="velocity"/>, its size and life varied a little
+            /// about those in <paramref name="settings"/>, which also give its
+            /// look. Its sideways speed bleeds off; its rise does not.
+            /// </summary>
+            public void Emit(Vector3 position, Vector3 velocity, Settings settings)
+            {
+                Setup(settings);
+
+                puffs.Add(new Puff
+                {
+                    position = position,
+                    velocity = velocity,
+                    rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f),
+                    spinAxis = Random.onUnitSphere,
+                    spinSpeed = Random.Range(90f, 270f),
+                    size = settings.size * Random.Range(0.7f, 1.1f),
+                    lifetime = settings.lifetime * Random.Range(0.8f, 1.2f),
+                });
+            }
+
+            /// <summary>The source is gone: finish the puffs in flight, then go.</summary>
             public void Release()
             {
                 released = true;

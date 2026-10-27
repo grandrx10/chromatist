@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc862e6d30a79d6408ba0373a0314e9a, type: 3}
+  m_Name: SceptorAttack
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.SceptorAttackPattern
+  delayAfter: 2
+  attackAnimation: sceptorAttack
+  movement:
+    type: 1
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 20
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  castTime: 2
+  recovery: 0.5
+  sceptorPointName: SceptorPoint
+  charge:
+    glowSize: 0.7
+    glowPulse: 0.15
+    glowPulseSpeed: 8
+    linesPerSecond: 30
+    lineDistance: 2.5
+    lineSpeed: 6
+    lineLength: 0.7
+    lineWidth: 0.05
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+  release:
+    flashSize: 1.4
+    flashTime: 0.2
+    sparkCount: 14
+    sparkSize: 0.35
+    sparkSpeed: {x: 5, y: 10}
+    sparkLife: 0.4
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+  shakeStrength: 0.25
+  shakeDuration: 0.2
+  missilePrefab: {fileID: 5839270658587173453, guid: a0241837bf8de5a4fb49165cb870982a, type: 3}
+  missileCount: 3
+  scatterJitter: 30
+  scatterLift: 25
+  missile:
+    scatterSpeed: 10
+    scatterTime: 0.15
+    lockTurnRate: 1200
+    lockTime: 0.1
+    trackTurnRate: 80
+    speed: 14
+    lifetime: 4
+    damage: 8
+    radius: 0.2
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 1153
+    size: 0.35
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    trailTime: 0.3
+    trailWidth: 0.3
+    dissipate:
+      flashSize: 0.6
+      flashTime: 0.12
+      sparkCount: 6
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 6}
+      sparkLife: 0.25
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}

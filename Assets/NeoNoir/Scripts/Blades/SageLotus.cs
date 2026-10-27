@@ -438,7 +438,7 @@ namespace LightAndShadow
                     return;
                 }
 
-                EnemyHealth health = overlaps[i].GetComponentInParent<EnemyHealth>();
+                EnemyHealth health = EnemyHealth.Of(overlaps[i]);
                 enemy |= health != null && !health.IsDead;
             }
 

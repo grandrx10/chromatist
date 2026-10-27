@@ -36,10 +36,21 @@ namespace LightAndShadow
     /// The boss cannot wake by itself before step 5, even if hurt: this sets
     /// <see cref="Enemy.StayDormant"/> until then. It falls kinematic, so a
     /// Rigidbody's gravity has no say until it has landed.
+    ///
+    /// With <see cref="startOnTrigger"/> off, walking in does nothing and no
+    /// collider is needed: something else, such as a
+    /// <see cref="SummoningAltar"/>, starts it through <see cref="Begin()"/>.
+    /// That can also choose the landing spot and have the boss simply appear
+    /// there, with no fall or landing impact, and can hold the dialogue back
+    /// with <see cref="HoldDialogue"/> until its own show is over.
     /// </remarks>
-    [RequireComponent(typeof(Collider))]
     public sealed class BossIntro : MonoBehaviour
     {
+        [Header("Start")]
+        [SerializeField]
+        [Tooltip("Start when the player walks into this object's trigger collider. Turn off to start it only from a script, such as a Summoning Altar.")]
+        private bool startOnTrigger = true;
+
         [Header("Boss")]
         [SerializeField]
         [Tooltip("The boss in the scene, or a boss prefab to spawn when the drop starts.")]
@@ -119,6 +130,10 @@ namespace LightAndShadow
         private bool played;
         private PlayerInputReader input;
 
+        // Set by whoever starts it from a script; otherwise the inspector's.
+        private Vector3? landingOverride;
+        private bool dropIn = true;
+
         // The boss actually fighting: the scene one, or the prefab's spawn.
         private Enemy fighter;
 
@@ -128,18 +143,28 @@ namespace LightAndShadow
         /// <summary>False when the boss field holds a prefab asset rather than an object in the scene.</summary>
         private bool BossInScene => boss != null && boss.gameObject.scene.IsValid();
 
-        /// <summary>Where the boss's pivot ends up once it has landed.</summary>
+        /// <summary>
+        /// Where the boss's pivot ends up once it has landed. A landing point
+        /// set here wins over one passed to <see cref="Begin(Vector3, bool)"/>.
+        /// </summary>
         private Vector3 LandingPosition
         {
             get
             {
                 Vector3 spot = landingPoint != null ? landingPoint.position
+                    : landingOverride.HasValue ? landingOverride.Value
                     : BossInScene ? boss.transform.position
                     : transform.position;
 
                 return spot + Vector3.up * landingHeightOffset;
             }
         }
+
+        /// <summary>
+        /// While true, the boss waits in its idle after its entrance instead
+        /// of starting the dialogue, for something else's show to finish.
+        /// </summary>
+        public bool HoldDialogue { get; set; }
 
         /// <summary>Raised the moment the player walks into the trigger, before the drop.</summary>
         public event Action<BossIntro> Triggered;
@@ -169,22 +194,58 @@ namespace LightAndShadow
 
         private void OnTriggerEnter(Collider other)
         {
-            if (played || boss == null)
+            if (!startOnTrigger)
             {
                 return;
             }
 
             PlayerMotor player = other.GetComponentInParent<PlayerMotor>();
 
-            if (player == null)
+            if (player != null)
             {
-                return;
+                Begin(player);
+            }
+        }
+
+        /// <summary>
+        /// Starts the intro now, wherever the player is. Returns false if it
+        /// has already played, has no boss, or there is no player.
+        /// </summary>
+        public bool Begin()
+        {
+            return Begin(FindFirstObjectByType<PlayerMotor>(FindObjectsInactive.Exclude));
+        }
+
+        /// <summary>
+        /// Starts the intro now with the boss landing at <paramref name="landing"/>
+        /// (before the height offset), unless this intro has a landing point
+        /// of its own, which wins. With <paramref name="drop"/> false it
+        /// appears there standing, with no fall, impact or shake.
+        /// </summary>
+        public bool Begin(Vector3 landing, bool drop)
+        {
+            if (played)
+            {
+                return false;
+            }
+
+            landingOverride = landing;
+            dropIn = drop;
+            return Begin();
+        }
+
+        private bool Begin(PlayerMotor player)
+        {
+            if (played || boss == null || player == null)
+            {
+                return false;
             }
 
             played = true;
             input = player.GetComponent<PlayerInputReader>();
             Triggered?.Invoke(this);
             StartCoroutine(Play(player.transform));
+            return true;
         }
 
         private void OnBossDied(EnemyHealth died)
@@ -202,7 +263,7 @@ namespace LightAndShadow
 
             Vector3 landing = LandingPosition;
 
-            Vector3 top = landing + Vector3.up * dropHeight;
+            Vector3 top = dropIn ? landing + Vector3.up * dropHeight : landing;
 
             if (BossInScene)
             {
@@ -242,7 +303,7 @@ namespace LightAndShadow
             // square of time, so it is fastest at the bottom.
             float clock = 0f;
 
-            while (clock < dropTime)
+            while (dropIn && clock < dropTime)
             {
                 yield return null;
                 clock += Time.deltaTime;
@@ -259,16 +320,24 @@ namespace LightAndShadow
                 body.linearVelocity = Vector3.zero;
             }
 
-            HammerImpact.Create(landing - Vector3.up * landingHeightOffset, impact, impactMaterial);
-
-            if (shakeStrength > 0f)
+            if (dropIn)
             {
-                TopDownCamera.Shake(shakeStrength, shakeDuration);
+                HammerImpact.Create(landing - Vector3.up * landingHeightOffset, impact, impactMaterial);
+
+                if (shakeStrength > 0f)
+                {
+                    TopDownCamera.Shake(shakeStrength, shakeDuration);
+                }
             }
 
             yield return fighter.WaitForAnimation(entranceAnimation);
 
             fighter.PlayAnimation(string.IsNullOrEmpty(idleAnimation) ? fighter.IdleAnimation : idleAnimation, idleBlend);
+
+            while (HoldDialogue)
+            {
+                yield return null;
+            }
 
             bool talking = true;
             Say(0, () => talking = false);

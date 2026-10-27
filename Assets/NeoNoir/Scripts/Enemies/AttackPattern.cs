@@ -33,6 +33,11 @@ namespace LightAndShadow
     /// walks never decides which way it looks: it always turns toward the
     /// player.
     ///
+    /// An attack with a <see cref="MaxRange"/> cannot start from that far
+    /// from the player or further: the enemy first walks toward the player,
+    /// at <see cref="ApproachSpeed"/>, until within
+    /// <see cref="ApproachDistance"/>, and only then begins it.
+    ///
     /// To add a new kind of attack, subclass this and give it a
     /// CreateAssetMenu, the way <see cref="AimedShotPattern"/> does.
     /// </remarks>
@@ -69,7 +74,29 @@ namespace LightAndShadow
 
         [SerializeField] private MovementSettings movement = new MovementSettings();
 
+        [Header("Range")]
+        [SerializeField]
+        [Tooltip("The attack cannot start from this far from the player or further; the enemy walks closer first. 0 attacks from any distance.")]
+        [Min(0f)]
+        private float rangeLimit;
+
+        [SerializeField]
+        [Tooltip("When out of range, walks toward the player until this close before attacking. Kept inside the range limit.")]
+        [Min(0f)]
+        private float rangeApproachDistance = 15f;
+
+        [SerializeField]
+        [Tooltip("Walking speed while closing in, in units per second.")]
+        [Min(0.1f)]
+        private float rangeApproachSpeed = 3f;
+
         public float DelayAfter => delayAfter;
+
+        public float MaxRange => rangeLimit;
+
+        public float ApproachDistance => Mathf.Min(rangeApproachDistance, rangeLimit);
+
+        public float ApproachSpeed => rangeApproachSpeed;
 
         public string AttackAnimation => attackAnimation;
 
@@ -80,6 +107,13 @@ namespace LightAndShadow
 
         /// <summary>Seconds to blend back to idle once the attack ends. Negative uses the enemy's usual blend.</summary>
         public virtual float IdleReturnBlend => -1f;
+
+        /// <summary>
+        /// Whether the attack can be performed right now. When false the
+        /// enemy skips it, with no animation and no Delay After, and moves on
+        /// to its next attack.
+        /// </summary>
+        public virtual bool CanPerform(Enemy enemy) => true;
 
         /// <summary>
         /// Plays the attack out. The enemy waits for it to finish before

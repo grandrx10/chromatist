@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d420c960097288d4a917e12a02c06090, type: 3}
+  m_Name: PotionLaunch
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.PotionLaunchPattern
+  delayAfter: 5
+  attackAnimation: WitchLaunch
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  blinkToCentre: 1
+  blink:
+    fadeOutTime: 0.6
+    travelTime: 0.8
+    fadeInTime: 0.5
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 1
+    runes:
+      count: 45
+      runeSize: {x: 0.25, y: 0.6}
+      lineWidth: 0.06
+      colour: {r: 4, g: 0.35, b: 0.3, a: 1}
+      material: {fileID: 0}
+      writeTime: 0.2
+      writeFlash: 1.5
+      flashTime: 0.4
+      bodyRadius: 0.45
+      bodyHeight: {x: 0.2, y: 2}
+      scatterDistance: {x: 1, y: 3.5}
+      scatterTime: {x: 0.25, y: 0.6}
+      swirlRadius: 6
+      lift: {x: 1, y: 6}
+      arriveSpread: 0.6
+      arriveFade: 0.25
+      spinSpeed: {x: 30, y: 360}
+  startRadius: 20
+  radiusStep: 5
+  endRadius: 5
+  ringGap: 0
+  potionPrefab: {fileID: 9125197765028708275, guid: 29228354327d03e4b8489bf5102382a4, type: 3}
+  releaseTime: 1
+  recovery: 0.5
+  handPotionName: Potion
+  handReturnTime: 0.5
+  potion:
+    flightTime: 1
+    arcHeight: 5
+    damage: 12
+    radius: 0.4
+    tumbleSpeed: 540
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 1
+  pool:
+    maxRadius: 5
+    spreadTime: 1.5
+    duration: 2
+    shrinkTime: 0.6
+    damagePerSecond: 10
+    tickInterval: 0.25
+    reachHeight: 2
+    floorOffset: 0.04
+    colour: {r: 1, g: 0.04, b: 0.08, a: 1}
+    material: {fileID: 0}
+    rimWidth: 0.25
+    accentColour: {r: 2.5, g: 0.2, b: 0.25, a: 1}
+    bubblesPerSecond: 6
+    bubbleSize: {x: 0.2, y: 0.45}
+    bubbleLife: {x: 0.4, y: 0.9}
+    popSpread: 2.5
+    popTime: 0.18
+    fumesPerSecond: 5
+    fumeSize: 0.15
+    fumeRiseSpeed: {x: 0.6, y: 1.4}
+    fumeLife: 1.2
+  shatter:
+    shardCount: 10
+    shardSize: 0.3
+    glassColour: {r: 1.6, g: 1.6, b: 1.8, a: 1}
+    glassMaterial: {fileID: 0}
+    dropletCount: 8
+    dropletSize: 0.18
+    upSpeed: {x: 3, y: 7}
+    outSpeed: {x: 2, y: 6}
+    gravity: 25
+    lifetime: 0.6
+    flashSize: 1.2
+    flashTime: 0.12

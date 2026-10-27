@@ -44,6 +44,9 @@ namespace LightAndShadow
         /// <summary>Raised once, when health reaches zero.</summary>
         public event Action<EnemyHealth> Died;
 
+        /// <summary>Raised after health is restored, with the amount actually restored.</summary>
+        public event Action<EnemyHealth, float> Healed;
+
         /// <summary>
         /// Raised after a blow the enemy survived, when the weapon said where
         /// it came from: with the blow's blade, or null if it did not say,
@@ -54,12 +57,59 @@ namespace LightAndShadow
 
         public float MaxHealth => maxHealth;
 
+        /// <summary>Whether the object is destroyed at zero health. Something that outlives its death, like an <see cref="Altar"/>, turns this off.</summary>
+        public bool DestroyOnDeath
+        {
+            get => destroyOnDeath;
+            set => destroyOnDeath = value;
+        }
+
         public float CurrentHealth { get; private set; }
 
         public bool IsDead => CurrentHealth <= 0f;
 
         /// <summary>While true, every blow is ignored as if it never landed.</summary>
         public bool Invulnerable { get; set; }
+
+        /// <summary>
+        /// While true, no blow can kill: one that would leaves the enemy on
+        /// <see cref="DeathFloor"/> instead and raises
+        /// <see cref="DeathPrevented"/>. A <see cref="RunicShield"/> turns
+        /// this on while its generators stand.
+        /// </summary>
+        public bool CannotDie { get; set; }
+
+        /// <summary>The health a blow stops at while <see cref="CannotDie"/>.</summary>
+        public const float DeathFloor = 1f;
+
+        /// <summary>Raised when a blow that would have killed is stopped by <see cref="CannotDie"/>.</summary>
+        public event Action<EnemyHealth> DeathPrevented;
+
+        /// <summary>
+        /// Another health that blows landing on this object's colliders count
+        /// against instead, or null. An armed <see cref="Altar"/> points its
+        /// own at its core's, so the whole altar can be struck. Followed by
+        /// <see cref="Of"/>.
+        /// </summary>
+        public EnemyHealth RedirectTo { get; set; }
+
+        /// <summary>
+        /// The health a blow on <paramref name="hit"/> lands on: the nearest
+        /// one on it or above it, following <see cref="RedirectTo"/>. Null if
+        /// the collider belongs to no enemy.
+        /// </summary>
+        public static EnemyHealth Of(Collider hit)
+        {
+            EnemyHealth health = hit.GetComponentInParent<EnemyHealth>();
+
+            // Bounded, in case two redirects point at each other.
+            for (int i = 0; i < 4 && health != null && health.RedirectTo != null; i++)
+            {
+                health = health.RedirectTo;
+            }
+
+            return health;
+        }
 
         /// <summary>
         /// What incoming damage is multiplied by right now: the active
@@ -78,6 +128,40 @@ namespace LightAndShadow
         private void Awake()
         {
             CurrentHealth = maxHealth;
+        }
+
+        /// <summary>
+        /// Sets the health pool and fills it. For something given health at
+        /// runtime, like an <see cref="ArcaneOrb"/>, with no inspector to set it in.
+        /// </summary>
+        public void SetMaxHealth(float value)
+        {
+            maxHealth = Mathf.Max(1f, value);
+            CurrentHealth = maxHealth;
+        }
+
+        /// <summary>
+        /// Restores up to <paramref name="amount"/> health, never past the
+        /// maximum. Returns the amount actually restored: nothing if dead,
+        /// already full, or a non-positive amount.
+        /// </summary>
+        public float Heal(float amount)
+        {
+            if (IsDead || amount <= 0f)
+            {
+                return 0f;
+            }
+
+            float restored = Mathf.Min(amount, maxHealth - CurrentHealth);
+
+            if (restored <= 0f)
+            {
+                return 0f;
+            }
+
+            CurrentHealth += restored;
+            Healed?.Invoke(this, restored);
+            return restored;
         }
 
         private void Update()
@@ -176,9 +260,30 @@ namespace LightAndShadow
 
             amount *= DamageTakenMultiplier;
 
-            CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
-            Damaged?.Invoke(this, amount);
-            AnyDamaged?.Invoke(this, amount);
+            bool prevented = CannotDie && CurrentHealth - amount <= 0f;
+
+            if (prevented)
+            {
+                // Only what takes it down to the floor; nothing once there.
+                float floor = Mathf.Min(CurrentHealth, DeathFloor);
+                amount = CurrentHealth - floor;
+                CurrentHealth = floor;
+            }
+            else
+            {
+                CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
+            }
+
+            if (amount > 0f)
+            {
+                Damaged?.Invoke(this, amount);
+                AnyDamaged?.Invoke(this, amount);
+            }
+
+            if (prevented)
+            {
+                DeathPrevented?.Invoke(this);
+            }
 
             if (IsDead)
             {

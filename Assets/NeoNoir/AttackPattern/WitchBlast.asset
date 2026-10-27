@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d810f9d90cc295429f2779be72fbc5f, type: 3}
+  m_Name: WitchBlast
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.WitchBlastPattern
+  delayAfter: 1
+  attackAnimation: WitchBlast
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  aimTime: 1
+  lockTime: 1
+  turnSpeed: 30
+  turnDirection: 0
+  sweepTime: 12
+  originName: RightHandPoint
+  recovery: 0.5
+  beam:
+    length: 40
+    radius: 1
+    wallMask:
+      serializedVersion: 2
+      m_Bits: 1
+    growTime: 0.25
+    shrinkTime: 0.3
+    damagePerSecond: 10
+    tickInterval: 0.25
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    flash:
+      flashSize: 2.5
+      flashTime: 0.2
+      sparkCount: 12
+      sparkSize: 0.35
+      sparkSpeed: {x: 4, y: 9}
+      sparkLife: 0.35
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparks:
+      flashSize: 1.2
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.3
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparkInterval: 0.1
+    boltCount: 5
+    boltColour: {r: 0, g: 0, b: 0, a: 1}
+    boltWidth: 0.12
+    boltReach: {x: 0.9, y: 1.6}
+    boltStep: 0.8
+    flicker: 0.04
+  circleAhead: 0.4
+  circleSpin: 90
+  circleEraseTime: 0.3
+  circle:
+    radius: 1.4
+    runeCount: 6
+    runeSize: 0.4
+    showRings: 1
+    showDiamonds: 1
+    innerRadius: 0.66
+    ringWidth: 0.05
+    runeWidth: 0.04
+    colour: {r: 4, g: 0.35, b: 0.3, a: 1}
+    material: {fileID: 0}
+    drawTime: 0.1
+    chargingBrightness: 0.35
+    chargeCatchUp: 0.1
+    completeFlash: 3
+    flashTime: 0.5
+    pulseAmount: 0.25
+    pulseSpeed: 0.6
+    spinSpeed: 0
+    floorOffset: 0
+  potionPrefab: {fileID: 9125197765028708275, guid: 29228354327d03e4b8489bf5102382a4, type: 3}
+  potionInterval: 0.7
+  arenaRadius: 18
+  minDistanceFromEnemy: 3
+  potionHeight: 6
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  runePotion:
+    formTime: 2
+    hangTime: 0.25
+    formSpin: 90
+    runesPerSecond: 16
+    shellRadius: 2
+    runeLife: {x: 0.5, y: 0.8}
+    writeTime: 0.12
+    runeSize: {x: 0.25, y: 0.45}
+    lineWidth: 0.04
+    runeColour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    runeMaterial: {fileID: 0}
+  potion:
+    flightTime: 0.6
+    arcHeight: 0
+    damage: 12
+    radius: 0.4
+    tumbleSpeed: 360
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 1
+  pool:
+    maxRadius: 5
+    spreadTime: 1.5
+    duration: 5
+    shrinkTime: 0.6
+    damagePerSecond: 10
+    tickInterval: 0.25
+    reachHeight: 2
+    floorOffset: 0.04
+    colour: {r: 1, g: 0.04, b: 0.08, a: 1}
+    material: {fileID: 0}
+    rimWidth: 0.25
+    accentColour: {r: 2.5, g: 0.2, b: 0.25, a: 1}
+    bubblesPerSecond: 6
+    bubbleSize: {x: 0.2, y: 0.45}
+    bubbleLife: {x: 0.4, y: 0.9}
+    popSpread: 2.5
+    popTime: 0.18
+    fumesPerSecond: 5
+    fumeSize: 0.15
+    fumeRiseSpeed: {x: 0.6, y: 1.4}
+    fumeLife: 1.2
+  shatter:
+    shardCount: 10
+    shardSize: 0.3
+    glassColour: {r: 1.6, g: 1.6, b: 1.8, a: 1}
+    glassMaterial: {fileID: 0}
+    dropletCount: 8
+    dropletSize: 0.18
+    upSpeed: {x: 3, y: 7}
+    outSpeed: {x: 2, y: 6}
+    gravity: 25
+    lifetime: 0.6
+    flashSize: 1.2
+    flashTime: 0.12

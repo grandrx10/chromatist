@@ -323,7 +323,7 @@ namespace LightAndShadow
                     continue;
                 }
 
-                EnemyHealth struck = candidate.collider.GetComponentInParent<EnemyHealth>();
+                EnemyHealth struck = EnemyHealth.Of(candidate.collider);
                 bool blocks = struck != null && !struck.IsDead
                               || (obstacles.value & (1 << candidate.collider.gameObject.layer)) != 0;
 

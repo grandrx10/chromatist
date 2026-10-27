@@ -1,0 +1,104 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ccc415d9ca906d4980e3ce216419863, type: 3}
+  m_Name: ArcaneBomb
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.ArcaneBombPattern
+  delayAfter: 2
+  attackAnimation: ArcaneBomb
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  duration: 8
+  spawnWindow: 4
+  spawnInterval: 0.7
+  spawnDistance: {x: 15, y: 25}
+  spawnHeight: -0.5
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 1
+  wallMargin: 1.5
+  orbPrefab: {fileID: 5259286637870094825, guid: e48dcbfc5917208489c000ede9bcef5c, type: 3}
+  orb:
+    health: 10
+    growTime: 1
+    holdTime: 0.5
+    speed: 4
+    detonateDistance: 5
+    radius: 0.75
+    size: 1.5
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    contactDamage: 10
+    contactInterval: 1
+    runesPerSecond: {x: 6, y: 20}
+    shellRadius: 2.5
+    runeLife: {x: 0.6, y: 0.9}
+    writeTime: 0.12
+    runeSize: 0.35
+    lineWidth: 0.04
+    runeColour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    runeMaterial: {fileID: 0}
+    looseTime: 0.35
+    popTime: 0.15
+    popSwell: 1.3
+    pop:
+      flashSize: 0
+      flashTime: 0.15
+      sparkCount: 12
+      sparkSize: 0.2
+      sparkSpeed: {x: 2, y: 4}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    detonation:
+      flashSize: 2
+      flashTime: 0.25
+      sparkCount: 16
+      sparkSize: 0.4
+      sparkSpeed: {x: 5, y: 11}
+      sparkLife: 0.45
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    shakeStrength: 0.3
+    shakeDuration: 0.25
+  shotPrefab: {fileID: 5839270658587173453, guid: a0241837bf8de5a4fb49165cb870982a, type: 3}
+  shotCount: 5
+  scatterJitter: 30
+  scatterLift: 25
+  shot:
+    scatterSpeed: 10
+    scatterTime: 0.15
+    lockTurnRate: 1200
+    lockTime: 0.1
+    trackTurnRate: 400
+    speed: 14
+    lifetime: 4
+    damage: 8
+    radius: 0.2
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    size: 0.35
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    trailTime: 0.3
+    trailWidth: 0.3
+    dissipate:
+      flashSize: 0.6
+      flashTime: 0.12
+      sparkCount: 6
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 6}
+      sparkLife: 0.25
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}

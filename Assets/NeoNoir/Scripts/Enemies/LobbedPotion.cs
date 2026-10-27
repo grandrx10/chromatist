@@ -29,6 +29,9 @@ namespace LightAndShadow
     ///
     /// Colliders belonging to the thrower are ignored, so it never shatters
     /// on the hand that let it go.
+    ///
+    /// Art taken from the <see cref="ArtPool"/> goes back to it on
+    /// shattering, ready to be thrown again; any other art is destroyed.
     /// </remarks>
     public sealed class LobbedPotion : MonoBehaviour
     {
@@ -84,7 +87,16 @@ namespace LightAndShadow
                 Destroy(part);
             }
 
-            LobbedPotion potion = art.AddComponent<LobbedPotion>();
+            // Art from the ArtPool comes back for another throw with its potion still on.
+            LobbedPotion potion = art.GetComponent<LobbedPotion>();
+
+            if (potion == null)
+            {
+                potion = art.AddComponent<LobbedPotion>();
+            }
+
+            potion.age = 0f;
+            potion.done = false;
             potion.settings = settings;
             potion.pool = pool;
             potion.shatter = shatter;
@@ -197,7 +209,7 @@ namespace LightAndShadow
                 PotionPool.Create(floor, pool);
             }
 
-            Destroy(gameObject);
+            ArtPool.Return(gameObject);
         }
 
         private Vector3 FloorBelow(Vector3 point)

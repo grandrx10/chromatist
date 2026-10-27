@@ -45,7 +45,7 @@ namespace LightAndShadow
 
             foreach (Collider overlap in overlaps)
             {
-                EnemyHealth enemy = overlap.GetComponentInParent<EnemyHealth>();
+                EnemyHealth enemy = EnemyHealth.Of(overlap);
 
                 if (enemy == null || enemy.IsDead || !alreadyHit.Add(enemy))
                 {
