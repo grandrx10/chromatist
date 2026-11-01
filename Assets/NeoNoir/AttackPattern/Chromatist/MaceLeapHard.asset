@@ -1,0 +1,134 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95bbfc5aff59cc342b26f807826424f8, type: 3}
+  m_Name: MaceLeapHard
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.MaceLeapPattern
+  delayAfter: 1
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: d055bf2d2c6cfb5438e7fc9292a08479, type: 3}
+  glisten:
+    colour: {r: 0.5943396, g: 0, b: 0.023271088, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  impactRadius: 10
+  impactDamage: 20
+  warningColour: {r: 1, g: 0.25, b: 0.2, a: 1}
+  warningOutline: 0.15
+  leapCount: 3
+  windupTime: 0.4
+  leapTime: 0.9
+  leapHeight: 7
+  turnSpeed: 540
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  gripHeight: 3.5
+  slamGripHeight: 1.2
+  slamReach: 1.2
+  headDistance: 1.5
+  pivotToHead: 0
+  cockAngle: {x: 30, y: 70}
+  slamAngle: 120
+  swingTime: 0.18
+  tremble: 0.1
+  holdTime: 0.5
+  holdBetweenLeaps: 0.2
+  impact:
+    ringRadius: 6
+    ringWidth: 1
+    ringTime: 0.4
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 14
+    debrisSize: 0.45
+    debrisUpSpeed: {x: 7, y: 12}
+    debrisOutSpeed: {x: 3, y: 7}
+    debrisGravity: 25
+    debrisTime: 0.8
+    debrisIntensity: 1.5
+  impactColour: {r: 1.6, g: 0.2, b: 0.2, a: 1}
+  cracks:
+    spokes: 14
+    spokeJitter: 0.25
+    firstRing: 1.5
+    ringSpacing: 2.2
+    ringJitter: 0.25
+    colour: {r: 2.5, g: 0.12, b: 0.08, a: 1}
+    lineWidth: 0.15
+    outlineWidth: 0.05
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    floorOffset: 0.04
+    spreadSpeed: 30
+    fadeInTime: 0.15
+    holdTime: 0.8
+    fadeOutTime: 1
+  shakeStrength: 1
+  shakeDuration: 0.5
+  blockCount: 10
+  blockSpread: {x: 3, y: 20}
+  firstLanding: 0.9
+  landingInterval: 0.2
+  landingJitter: 0.08
+  blocks:
+    art: {fileID: 5259286637870094825, guid: 8ba1cee5a656a7241af5d72b1a4757ca, type: 3}
+    size: 1
+    colour: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+    tumbleSpeed: 30
+    flightTime: {x: 0.9, y: 1.4}
+    arcHeight: 12
+    damage: 10
+    damageRadius: 2
+    warningColour: {r: 1, g: 0.25, b: 0.2, a: 1}
+    warningOutline: 0.08
+    landingBurst:
+      ringRadius: 1.8
+      ringWidth: 0.4
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 4
+      debrisSize: 0.25
+      debrisUpSpeed: {x: 4, y: 7}
+      debrisOutSpeed: {x: 2, y: 4}
+      debrisGravity: 25
+      debrisTime: 0.5
+      debrisIntensity: 1.5
+    shakeStrength: 0.2
+    shakeDuration: 0.15
+    restTime: 0
+    shrinkTime: 0.1
+  swordPrefab: {fileID: 2333795153408544322, guid: 1ee301ec8d6b55f4fb8ad2039fad67cb, type: 3}
+  growTime: 0.5
+  swordSink: 0.3

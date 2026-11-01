@@ -57,6 +57,15 @@ namespace LightAndShadow
         [Tooltip("How quickly knockback bleeds off. Higher is snappier recovery.")]
         private float externalDamping = 5.5f;
 
+        [Header("Ground")]
+        [SerializeField]
+        [Tooltip("Steepest floor, in degrees, that counts as ground. Anything steeper is a wall.")]
+        private float maxGroundAngle = 60f;
+
+        [SerializeField]
+        [Tooltip("Upward speed allowed on top of what the slope underfoot needs, for steps, seams and rising platforms.")]
+        private float riseAllowance = 4f;
+
         private Rigidbody body;
         private PlayerInputReader input;
         private DustTrail dust;
@@ -75,9 +84,25 @@ namespace LightAndShadow
 
         private Vector3 facing = Vector3.forward;
 
+        // Walkable contact normals from the last physics step, gathered by the
+        // collision callbacks and consumed by the next FixedUpdate.
+        private readonly List<Vector3> groundNormals = new List<Vector3>();
+
+        // Set by an upward impulse, so a deliberate launch is not clamped.
+        private bool launched;
+
         // Keyed by whoever applied each one, so a source can only ever
         // remove its own and two sources stack by multiplying.
         private readonly Dictionary<object, float> speedModifiers = new Dictionary<object, float>();
+
+        // Set by StartAutoRun: the velocity the player is carried along at,
+        // and how fast input can steer across it.
+        private Vector3? autoRunVelocity;
+        private float autoRunSideSpeed;
+
+        // Added to a dash taken mid-run, so it goes sideways without losing
+        // the run's forward speed.
+        private Vector3 dashCarry;
 
         /// <summary>Raised when a dash begins. Hook i-frames, the cape snap, and impact sparks here.</summary>
         public event Action DashStarted;
@@ -88,6 +113,43 @@ namespace LightAndShadow
         public bool IsDashing => dashTimeRemaining > 0f;
 
         public bool CanDash => !IsDashing && dashCooldownRemaining <= 0f;
+
+        /// <summary>Normal walking speed, before any speed modifier.</summary>
+        public float MoveSpeed => moveSpeed;
+
+        /// <summary>True between <see cref="StartAutoRun"/> and <see cref="StopAutoRun"/>.</summary>
+        public bool IsAutoRunning => autoRunVelocity.HasValue;
+
+        /// <summary>
+        /// While set, the character faces this flat direction instead of the
+        /// way it moves: to run backwards, say, facing what chases it.
+        /// </summary>
+        public Vector3? FacingOverride { get; set; }
+
+        /// <summary>
+        /// Carries the player along at <paramref name="velocity"/> whatever the
+        /// input says, until <see cref="StopAutoRun"/>. Input only steers
+        /// across that direction, at up to <paramref name="sideSpeed"/>.
+        /// Speed modifiers are ignored meanwhile. For a forced run, such as
+        /// <see cref="SpearHallIntro"/>'s.
+        /// </summary>
+        public void StartAutoRun(Vector3 velocity, float sideSpeed)
+        {
+            autoRunVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            autoRunSideSpeed = Mathf.Max(0f, sideSpeed);
+        }
+
+        /// <summary>Hands movement back to the input. The run speed bleeds off at the usual deceleration.</summary>
+        public void StopAutoRun()
+        {
+            autoRunVelocity = null;
+        }
+
+        /// <summary>Takes <paramref name="seconds"/> off the dash cooldown, stopping at zero.</summary>
+        public void ReduceDashCooldown(float seconds)
+        {
+            dashCooldownRemaining = Mathf.Max(0f, dashCooldownRemaining - Mathf.Max(0f, seconds));
+        }
 
         /// <summary>Multiplies the time left on the dash cooldown by <paramref name="factor"/>: 0.5 halves what remains.</summary>
         public void ScaleDashCooldown(float factor)
@@ -200,12 +262,20 @@ namespace LightAndShadow
         {
             if (input != null && input.DashQueued && CanDash)
             {
-                Dash(input.MoveWorld);
+                if (IsAutoRunning)
+                {
+                    DashAcrossRun();
+                }
+                else
+                {
+                    Dash(input.MoveWorld);
+                }
+
                 input.ConsumeDash();
             }
 
-            // Every dash, the button's and abilities' alike.
-            if (IsDashing)
+            // Every dash, the button's and abilities' alike, and a forced run.
+            if (IsDashing || IsAutoRunning)
             {
                 dust.KeepEmitting();
             }
@@ -218,19 +288,108 @@ namespace LightAndShadow
             TickDash(deltaTime);
             TickExternal(deltaTime);
 
-            Vector3 wish = (input != null ? input.MoveWorld : Vector3.zero) * (moveSpeed * SpeedMultiplier);
+            Vector3 wish = autoRunVelocity.HasValue
+                ? AutoRunWish()
+                : (input != null ? input.MoveWorld : Vector3.zero) * (moveSpeed * SpeedMultiplier);
             float rate = wish.sqrMagnitude > 0.000001f ? acceleration : deceleration;
             driveVelocity = Vector3.MoveTowards(driveVelocity, wish, rate * deltaTime);
 
-            Vector3 planar = IsDashing ? dashVelocity : driveVelocity;
+            Vector3 planar = IsDashing ? dashVelocity + dashCarry : driveVelocity;
             planar += externalVelocity;
 
             // Preserve gravity. Overwriting Y here would leave the character
             // hanging on slopes and floating off ledges.
             Vector3 current = body.linearVelocity;
-            body.linearVelocity = new Vector3(planar.x, current.y, planar.z);
+            float vertical = ClampRise(current.y, planar);
+            body.linearVelocity = new Vector3(planar.x, vertical, planar.z);
 
             UpdateFacing(planar, deltaTime);
+        }
+
+        /// <summary>The auto-run velocity, plus the sideways part of the input across it.</summary>
+        private Vector3 AutoRunWish()
+        {
+            Vector3 run = autoRunVelocity.Value;
+
+            if (input == null || run.sqrMagnitude < 0.000001f)
+            {
+                return run;
+            }
+
+            Vector3 side = Vector3.Cross(Vector3.up, run.normalized);
+            return run + side * (Vector3.Dot(input.MoveWorld, side) * autoRunSideSpeed);
+        }
+
+        /// <summary>
+        /// Limits upward speed to what the ground actually asks for. Driving
+        /// fast into a ramp makes the solver resolve the overlap by shoving the
+        /// body up, and at dash speed that shove launches it into the sky; at
+        /// the top of a ramp the climb speed would carry it off the same way.
+        /// The rise a slope needs is exact from its normal, so anything past
+        /// that, plus a little for steps, is the solver's doing and is cut.
+        /// </summary>
+        private float ClampRise(float vertical, Vector3 planar)
+        {
+            if (launched)
+            {
+                if (vertical <= 0f)
+                {
+                    launched = false;
+                }
+
+                groundNormals.Clear();
+                return vertical;
+            }
+
+            if (vertical <= 0f)
+            {
+                groundNormals.Clear();
+                return vertical;
+            }
+
+            // Airborne with no launch: nothing should be lifting the body.
+            float maxRise = 0f;
+
+            if (groundNormals.Count > 0)
+            {
+                float slopeRise = 0f;
+
+                foreach (Vector3 normal in groundNormals)
+                {
+                    // Vertical speed that keeps the planar motion on this plane.
+                    float rise = -(normal.x * planar.x + normal.z * planar.z) / normal.y;
+                    slopeRise = Mathf.Max(slopeRise, rise);
+                }
+
+                maxRise = slopeRise + riseAllowance;
+            }
+
+            groundNormals.Clear();
+            return Mathf.Min(vertical, maxRise);
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            GatherGroundNormals(collision);
+        }
+
+        private void OnCollisionStay(Collision collision)
+        {
+            GatherGroundNormals(collision);
+        }
+
+        private void GatherGroundNormals(Collision collision)
+        {
+            float minNormalY = Mathf.Cos(maxGroundAngle * Mathf.Deg2Rad);
+
+            for (int i = 0; i < collision.contactCount; i++)
+            {
+                Vector3 normal = collision.GetContact(i).normal;
+                if (normal.y >= minNormalY)
+                {
+                    groundNormals.Add(normal);
+                }
+            }
         }
 
         private void TickDash(float deltaTime)
@@ -265,9 +424,11 @@ namespace LightAndShadow
             // Hand the dash speed to the drive channel so the character
             // decelerates out of the dash rather than stopping dead. A capped
             // exit keeps a very fast dash from sliding on for metres after.
-            driveVelocity = dashExitSpeed >= 0f
+            driveVelocity = (dashExitSpeed >= 0f
                 ? Vector3.ClampMagnitude(dashVelocity, dashExitSpeed)
-                : dashVelocity;
+                : dashVelocity) + dashCarry;
+
+            dashCarry = Vector3.zero;
 
             if (dashSetsCooldown)
             {
@@ -297,7 +458,9 @@ namespace LightAndShadow
                 return;
             }
 
-            Vector3 direction = new Vector3(planar.x, 0f, planar.z);
+            Vector3 direction = FacingOverride ?? new Vector3(planar.x, 0f, planar.z);
+            direction.y = 0f;
+
             if (direction.sqrMagnitude > 0.04f)
             {
                 facing = direction.normalized;
@@ -324,6 +487,7 @@ namespace LightAndShadow
             dashVelocity = flattened.normalized * dashSpeed;
             dashTimeRemaining = dashDuration;
             facing = flattened.normalized;
+            dashCarry = Vector3.zero;
 
             dashSteerable = steerDuringDash;
             dashExitSpeed = -1f;
@@ -356,6 +520,7 @@ namespace LightAndShadow
             duration = Mathf.Max(fixedStep, duration);
 
             dashVelocity = flattened.normalized * (Mathf.Max(0f, distance) / duration);
+            dashCarry = Vector3.zero;
 
             // TickDash counts down before the velocity is applied, so a dash
             // of exactly N physics steps would only move for N - 1 of them.
@@ -369,6 +534,29 @@ namespace LightAndShadow
 
             DashStarted?.Invoke();
             return true;
+        }
+
+        /// <summary>
+        /// The dash button mid-run: dashes straight left or right across the
+        /// run, whichever way the stick leans, keeping the run's speed. With
+        /// no lean either way the press does nothing.
+        /// </summary>
+        private void DashAcrossRun()
+        {
+            Vector3 run = autoRunVelocity.Value;
+            Vector3 side = Vector3.Cross(Vector3.up, run.normalized);
+            float lean = Vector3.Dot(input.MoveWorld, side);
+
+            if (Mathf.Abs(lean) < 0.3f)
+            {
+                return;
+            }
+
+            Dash(side * Mathf.Sign(lean));
+            dashCarry = run;
+
+            // Facing the way the player is really going, not straight across.
+            facing = (dashVelocity + dashCarry).normalized;
         }
 
         /// <summary>Dashes in the direction currently faced.</summary>
@@ -400,6 +588,7 @@ namespace LightAndShadow
             {
                 // Vertical goes to the rigidbody so gravity brings it back down.
                 body.linearVelocity += new Vector3(0f, impulse.y, 0f);
+                launched |= impulse.y > 0f;
             }
         }
 
@@ -436,6 +625,24 @@ namespace LightAndShadow
             dashVelocity = Vector3.zero;
             externalVelocity = Vector3.zero;
             body.linearVelocity = Vector3.zero;
+        }
+
+        /// <summary>Teleports the character and turns it to face <paramref name="forward"/>, flattened.</summary>
+        public void Teleport(Vector3 position, Vector3 forward)
+        {
+            Teleport(position);
+
+            forward.y = 0f;
+
+            if (forward.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            facing = forward.normalized;
+            Quaternion rotation = Quaternion.LookRotation(facing, Vector3.up);
+            body.rotation = rotation;
+            transform.rotation = rotation;
         }
     }
 }

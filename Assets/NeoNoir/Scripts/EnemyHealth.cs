@@ -4,6 +4,16 @@ using UnityEngine;
 
 namespace LightAndShadow
 {
+    /// <summary>Something that can turn aside blows meant for an enemy, set as its <see cref="EnemyHealth.Guard"/>.</summary>
+    public interface IBlowGuard
+    {
+        /// <summary>
+        /// Whether the blow is turned aside. <paramref name="at"/> is where it
+        /// landed, if the weapon knows. Shows the parry when it returns true.
+        /// </summary>
+        bool TryParry(Vector3? at, Blade source);
+    }
+
     /// <summary>
     /// Hit points for an enemy. Takes damage, and dies at zero.
     /// </summary
@@ -72,12 +82,70 @@ namespace LightAndShadow
         public bool Invulnerable { get; set; }
 
         /// <summary>
+        /// True for something hittable that is not really an enemy, such as a
+        /// <see cref="ThrownColumn"/>: blades leave it out of the marks they
+        /// paint on enemies, like Rose's arc.
+        /// </summary>
+        public bool Unmarked { get; set; }
+
+        /// <summary>
+        /// While set, every blow is offered to it first, and one it parries
+        /// does nothing. Weapons with hit effects of their own call
+        /// <see cref="Parry"/> before striking, to skip them too.
+        /// </summary>
+        public IBlowGuard Guard { get; set; }
+
+        /// <summary>
         /// While true, no blow can kill: one that would leaves the enemy on
         /// <see cref="DeathFloor"/> instead and raises
         /// <see cref="DeathPrevented"/>. A <see cref="RunicShield"/> turns
         /// this on while its generators stand.
         /// </summary>
         public bool CannotDie { get; set; }
+
+        /// <summary>
+        /// Health no blow can take the enemy below, or 0 for none. Set by
+        /// <see cref="Enemy"/> so a boss cannot skip a phase, or die, before
+        /// the phase it is in has played an attack. Unlike
+        /// <see cref="CannotDie"/>, holding here raises nothing.
+        /// </summary>
+        public float MinimumHealth { get; set; }
+
+        /// <summary>
+        /// While true the enemy is not there to be struck at all: every blow
+        /// is ignored, as with <see cref="Invulnerable"/>, and it is left out
+        /// of <see cref="Active"/>, so marks and homing never pick it out.
+        /// Only <see cref="TakeLinkedDamage"/> reaches it. For a boss that
+        /// fights through stand-ins, as the Puppeteer does through its
+        /// <see cref="PuppeteerEye"/>s.
+        /// </summary>
+        public bool Intangible
+        {
+            get => intangible;
+            set
+            {
+                if (intangible == value)
+                {
+                    return;
+                }
+
+                intangible = value;
+
+                if (!isActiveAndEnabled)
+                {
+                    return;
+                }
+
+                if (value)
+                {
+                    active.Remove(this);
+                }
+                else
+                {
+                    active.Add(this);
+                }
+            }
+        }
 
         /// <summary>The health a blow stops at while <see cref="CannotDie"/>.</summary>
         public const float DeathFloor = 1f;
@@ -124,6 +192,7 @@ namespace LightAndShadow
         public event Action<EnemyHealth, float, float> VulnerabilityApplied;
 
         private float vulnerability = 1f;
+        private bool intangible;
 
         private void Awake()
         {
@@ -234,7 +303,10 @@ namespace LightAndShadow
 
         private void OnEnable()
         {
-            active.Add(this);
+            if (!intangible)
+            {
+                active.Add(this);
+            }
         }
 
         private void OnDisable()
@@ -253,12 +325,49 @@ namespace LightAndShadow
         /// </summary>
         public bool TakeDamage(float amount, Blade source = null, Vector3? from = null)
         {
+            if (Intangible || Parry(from, source))
+            {
+                return false;
+            }
+
+            return ApplyDamage(amount * DamageTakenMultiplier, source, from, true);
+        }
+
+        /// <summary>
+        /// Offers a blow to the <see cref="Guard"/>. True if it was parried:
+        /// the blow should then do nothing at all, its effects included.
+        /// <paramref name="at"/> is where it landed, if the weapon knows.
+        /// </summary>
+        public bool Parry(Vector3? at, Blade source = null)
+        {
+            return Guard != null && !IsDead && !Invulnerable && !Intangible && Guard.TryParry(at, source);
+        }
+
+        /// <summary>
+        /// Deals damage passed on from something linked to this enemy, such
+        /// as a <see cref="PuppeteerEye"/>. Reaches it even while
+        /// <see cref="Intangible"/>, but not while <see cref="Invulnerable"/>.
+        /// Taken exactly as given: the stand-in already had its own
+        /// vulnerability applied. Raises <see cref="Damaged"/> but not
+        /// <see cref="AnyDamaged"/>, since the stand-in already showed the hit.
+        /// </summary>
+        public bool TakeLinkedDamage(float amount, Blade source = null)
+        {
+            return ApplyDamage(amount, source, null, false);
+        }
+
+        private bool ApplyDamage(float amount, Blade source, Vector3? from, bool announce)
+        {
             if (IsDead || Invulnerable || amount <= 0f)
             {
                 return false;
             }
 
-            amount *= DamageTakenMultiplier;
+            // Held at the minimum: only what takes it down to there.
+            if (MinimumHealth > 0f && CurrentHealth - amount < MinimumHealth)
+            {
+                amount = Mathf.Max(0f, CurrentHealth - MinimumHealth);
+            }
 
             bool prevented = CannotDie && CurrentHealth - amount <= 0f;
 
@@ -277,7 +386,11 @@ namespace LightAndShadow
             if (amount > 0f)
             {
                 Damaged?.Invoke(this, amount);
-                AnyDamaged?.Invoke(this, amount);
+
+                if (announce)
+                {
+                    AnyDamaged?.Invoke(this, amount);
+                }
             }
 
             if (prevented)

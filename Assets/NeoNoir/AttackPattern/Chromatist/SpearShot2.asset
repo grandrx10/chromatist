@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a64eb98ce87dace448e3714690186498, type: 3}
+  m_Name: SpearShot2
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.SpearShotPattern2
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  circleRadius: 2.5
+  warnTime: 1
+  damage: 10
+  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
+  warningOutline: 0.1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  spearsPerCircle: 4
+  spearSpread: 0.75
+  spear:
+    spearPrefab: {fileID: 2189733109407162466, guid: db698d86d2a84904fbb14d1e545b6c90, type: 3}
+    flightDistance: 14
+    flightTime: 0.18
+    leanAngle: 30
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 1
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 10
+    damageRadius: 0.7
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 1, g: 0.62, b: 0.08, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.15
+    shakeDuration: 0.15
+  circleBurst:
+    ringRadius: 3
+    ringWidth: 0.5
+    ringTime: 0.3
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 6
+    debrisSize: 0.3
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 2, y: 5}
+    debrisGravity: 25
+    debrisTime: 0.6
+    debrisIntensity: 1.5
+  shakeStrength: 0.2
+  shakeDuration: 0.15
+  startDistance: 50
+  ringStep: 5
+  endDistance: 0
+  circleSpacing: 4
+  ringInterval: 0.08
+  waveGap: 0.6

@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using UnityEngine;
 
 namespace LightAndShadow
@@ -74,6 +75,9 @@ namespace LightAndShadow
         [Tooltip("Seconds to blend from an attack back into the orbit pose.")]
         private float releaseTime = 0.3f;
 
+        /// <summary>What upgraded stats are multiplied by for each level past 1: level 2 is this, level 3 this squared.</summary>
+        private const float LevelMultiplier = 1.1f;
+
         private PlayerInputReader input;
         private PlayerMotor motor;
         private PlayerHealth health;
@@ -95,6 +99,76 @@ namespace LightAndShadow
         /// </summary>
         public event Action HitWindowReset;
 
+        /// <summary>
+        /// The weapon this blade was equipped as, set by
+        /// <see cref="BladeArsenal"/>. Null for a blade placed in a scene by
+        /// hand, which is then level 1.
+        /// </summary>
+        public BladeDefinition Definition { get; set; }
+
+        /// <summary>The weapon's level in <see cref="BladeUnlocks"/>: 1 when activated, one more per upgrade. Never less than 1.</summary>
+        public int Level => Definition != null ? Mathf.Max(1, BladeUnlocks.LevelOf(Definition)) : 1;
+
+        /// <summary>
+        /// What upgraded stats are multiplied by at this level: 1 at level 1,
+        /// times the level multiplier (1.1) for each level after.
+        /// </summary>
+        public float LevelScale => Mathf.Pow(LevelMultiplier, Level - 1);
+
+        /// <summary><paramref name="factor"/> compounded once for each level past 1: 1 at level 1.</summary>
+        protected float PerLevel(float factor) => Mathf.Pow(factor, Level - 1);
+
+        /// <summary>
+        /// What the primary attack rate is multiplied by for each level past 1.
+        /// The level multiplier (1.1) unless a blade has its own.
+        /// </summary>
+        protected virtual float AttackSpeedPerLevel => LevelMultiplier;
+
+        /// <summary>What a <see cref="BladeHitbox"/> on this blade multiplies its damage by at this level.</summary>
+        public virtual float HitboxDamageScale => LevelScale;
+
+        private static readonly MethodInfo CloneMethod =
+            typeof(object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        /// <summary>
+        /// <paramref name="settings"/> as they stand at this level:
+        /// <paramref name="scale"/> is given a copy and the
+        /// <see cref="LevelScale"/> to apply to it, so the values set in the
+        /// Inspector are never changed. At level 1 the settings themselves.
+        /// The copy is shallow: change only its own numbers.
+        /// </summary>
+        protected T Leveled<T>(T settings, Action<T, float> scale) where T : class
+        {
+            float level = LevelScale;
+
+            if (settings == null || Mathf.Approximately(level, 1f))
+            {
+                return settings;
+            }
+
+            T copy = (T)CloneMethod.Invoke(settings, null);
+            scale(copy, level);
+            return copy;
+        }
+
+        /// <summary>
+        /// <paramref name="settings"/> as they stand at this level, for a
+        /// blade with its own per-level rules: <paramref name="change"/> is
+        /// given a shallow copy to change, so the values set in the Inspector
+        /// are never touched. At level 1 the settings themselves.
+        /// </summary>
+        protected T LeveledCopy<T>(T settings, Action<T> change) where T : class
+        {
+            if (settings == null || Level <= 1)
+            {
+                return settings;
+            }
+
+            T copy = (T)CloneMethod.Invoke(settings, null);
+            change(copy);
+            return copy;
+        }
+
         /// <summary>Set by <see cref="Bind"/>. A blade placed in a scene by hand acts as a main blade.</summary>
         public BladeSlot Slot { get; private set; } = BladeSlot.Main;
 
@@ -103,6 +177,12 @@ namespace LightAndShadow
 
         /// <summary>True from <see cref="ActivateSecondary"/> until the ability calls <see cref="FinishSecondary"/>.</summary>
         public bool SecondaryActive { get; private set; }
+
+        /// <summary>
+        /// While true, the blade leaves its own transform alone -- no orbit,
+        /// no attack -- so a cutscene can move it by hand.
+        /// </summary>
+        public bool Seized { get; set; }
 
         /// <summary>
         /// 0 is fully dissolved, 1 fully visible. Drives the dithered fade in
@@ -154,10 +234,11 @@ namespace LightAndShadow
 
         /// <summary>
         /// What the blade's attacks per second are multiplied by right now: 1
-        /// normally, more while the owner stands in a <see cref="BluePerimeter"/>.
+        /// normally, more while the owner stands in a <see cref="BluePerimeter"/>,
+        /// and more again for each level (<see cref="AttackSpeedPerLevel"/>).
         /// Every primary attack rate must be scaled by this.
         /// </summary>
-        protected float AttackSpeedMultiplier => owner != null ? BluePerimeter.AttackSpeedAt(owner.position) : 1f;
+        protected float AttackSpeedMultiplier => (owner != null ? BluePerimeter.AttackSpeedAt(owner.position) : 1f) * PerLevel(AttackSpeedPerLevel);
 
         /// <summary>True while a main blade's attack button is held. Always false for a secondary blade.</summary>
         protected bool PrimaryHeld => Slot == BladeSlot.Main && input != null && input.AttackHeld;
@@ -201,6 +282,15 @@ namespace LightAndShadow
         /// attack pose over them.
         /// </summary>
         protected abstract void Tick(Vector3 orbitPosition, Quaternion orbitRotation, float deltaTime);
+
+        /// <summary>
+        /// Called each frame instead of <see cref="Tick"/> while
+        /// <see cref="Seized"/>, after whoever holds the blade has posed it,
+        /// for parts drawn from its pose, such as a bow's string.
+        /// </summary>
+        protected virtual void TickSeized()
+        {
+        }
 
         /// <summary>Called by the ability when it is completely done, effects included.</summary>
         protected void FinishSecondary()
@@ -277,6 +367,12 @@ namespace LightAndShadow
             // LateUpdate so the player's interpolated rigidbody position for
             // this frame is already final; reading it earlier adds a frame of
             // jitter to everything below.
+            if (Seized)
+            {
+                TickSeized();
+                return;
+            }
+
             if (!ResolveOwner())
             {
                 return;
@@ -288,22 +384,36 @@ namespace LightAndShadow
                 return;
             }
 
+            // Carried along with a forced run, so the follow only lags the
+            // player's own steering, not the run itself.
+            anchor += ChaseFrame.Step(deltaTime);
+
             anchor = Vector3.SmoothDamp(anchor, owner.position, ref anchorVelocity,
                                         Mathf.Max(0.0001f, followTime), Mathf.Infinity, deltaTime);
 
             // Off one clock shared by every blade, not each its own: a blade
             // that sat out of the rotation comes back exactly in step, so the
             // main and the shown secondary always stay OrbitPhase apart.
+            OrbitPose(anchor, OrbitPhase, out Vector3 orbitPosition, out Quaternion orbitRotation);
+            Tick(orbitPosition, orbitRotation, deltaTime);
+        }
+
+        /// <summary>
+        /// Where this blade rests this frame orbiting <paramref name="around"/>
+        /// at <paramref name="orbitPhase"/>, with no follow lag. For flying a
+        /// blade into its place before equipping it, so the hand-over is seamless.
+        /// </summary>
+        public void OrbitPose(Vector3 around, float orbitPhase, out Vector3 position, out Quaternion rotation)
+        {
             float orbitAngle = Mathf.Repeat(Time.time * orbitSpeed, 360f);
 
-            Vector3 radial = Quaternion.Euler(0f, orbitAngle + OrbitPhase, 0f) * Vector3.forward;
+            Vector3 radial = Quaternion.Euler(0f, orbitAngle + orbitPhase, 0f) * Vector3.forward;
             float bob = Mathf.Sin(Time.time * bobFrequency * 2f * Mathf.PI) * bobAmplitude;
-            Vector3 orbitOffset = radial * orbitRadius + Vector3.up * (orbitHeight + bob);
+
+            position = around + radial * orbitRadius + Vector3.up * (orbitHeight + bob);
 
             // Flat turned inward, tip straight down.
-            Quaternion orbitRotation = Quaternion.LookRotation(-radial, Vector3.up);
-
-            Tick(anchor + orbitOffset, orbitRotation, deltaTime);
+            rotation = Quaternion.LookRotation(-radial, Vector3.up);
         }
 
         /// <summary>Moves an engage weight toward on or off at the shared engage and release rates.</summary>

@@ -26,6 +26,10 @@ namespace LightAndShadow
     /// colour, so it dissolves with the same dither as the blades. Brightness
     /// comes from scaling the material's own colour, never from editing it.
     ///
+    /// Handed a <see cref="PlayerHealth"/>, the line is an enemy's instead:
+    /// it hurts that player, once, if the front passes them, and leaves
+    /// enemies alone.
+    ///
     /// Spawned at runtime and builds its own meshes, so it needs no prefab.
     /// </remarks>
     public sealed class AmberSlam : MonoBehaviour
@@ -114,6 +118,8 @@ namespace LightAndShadow
         private readonly HashSet<EnemyHealth> hit = new HashSet<EnemyHealth>();
 
         private Settings settings;
+        private PlayerHealth player;
+        private bool playerHit;
         private float age;
         private float front;
 
@@ -153,14 +159,16 @@ namespace LightAndShadow
         /// body. The swing arc is drawn about a shoulder
         /// <paramref name="shoulderHeight"/> above the floor, from
         /// <paramref name="swingFrom"/> to <paramref name="swingTo"/> degrees
-        /// from straight up, positive toward the slam.
+        /// from straight up, positive toward the slam. With a
+        /// <paramref name="target"/>, it hurts that player instead of enemies.
         /// </summary>
         public static AmberSlam Create(Vector3 floorPoint, Vector3 slamDirection, float hitHeight,
                                        float shoulderHeight, float swingFrom, float swingTo,
-                                       Settings settings, Material material)
+                                       Settings settings, Material material, PlayerHealth target = null)
         {
             GameObject host = new GameObject("AmberSlam");
             AmberSlam slam = host.AddComponent<AmberSlam>();
+            slam.player = target;
             slam.Begin(floorPoint, slamDirection, hitHeight, shoulderHeight, swingFrom, swingTo, settings, material);
             return slam;
         }
@@ -231,6 +239,9 @@ namespace LightAndShadow
             float deltaTime = Time.deltaTime;
             age += deltaTime;
 
+            // Rides along with a running player.
+            transform.position += ChaseFrame.Step(deltaTime);
+
             if (age >= Lifetime)
             {
                 Destroy(gameObject);
@@ -255,9 +266,36 @@ namespace LightAndShadow
                 start.y = damageHeight;
                 end.y = damageHeight;
 
+                if (player != null)
+                {
+                    HurtPlayer(start, end);
+                    return;
+                }
+
                 BladeDamage.Sweep(start, end, settings.width * 0.5f, settings.damage, direction, hit,
                                   slashTint: settings.hitColour, slashCount: settings.hitSlashes,
                                   slashScale: settings.hitSlashSize);
+            }
+        }
+
+        /// <summary>Hurts the player, once, if they stand on the stretch of line from <paramref name="start"/> to <paramref name="end"/>.</summary>
+        private void HurtPlayer(Vector3 start, Vector3 end)
+        {
+            if (playerHit)
+            {
+                return;
+            }
+
+            // Measured flat: the line runs along the floor, whatever the height.
+            Vector3 at = player.transform.position;
+            Vector3 offset = new Vector3(at.x - start.x, 0f, at.z - start.z);
+            Vector3 span = new Vector3(end.x - start.x, 0f, end.z - start.z);
+            float along = span.sqrMagnitude > 0.000001f ? Mathf.Clamp01(Vector3.Dot(offset, span) / span.sqrMagnitude) : 0f;
+
+            if ((offset - span * along).sqrMagnitude <= settings.width * settings.width * 0.25f)
+            {
+                playerHit = true;
+                player.TakeDamage(settings.damage, transform.position);
             }
         }
 

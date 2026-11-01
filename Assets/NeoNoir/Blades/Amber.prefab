@@ -74,7 +74,7 @@ MonoBehaviour:
   orbitHeight: 1.2
   bobAmplitude: 0.08
   bobFrequency: 0.5
-  followTime: 0.3
+  followTime: 0
   engageTime: 0.12
   releaseTime: 0.3
   damage: 15

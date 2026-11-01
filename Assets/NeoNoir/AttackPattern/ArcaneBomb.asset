@@ -85,7 +85,7 @@ MonoBehaviour:
     trackTurnRate: 400
     speed: 14
     lifetime: 4
-    damage: 8
+    damage: 6
     radius: 0.2
     hitMask:
       serializedVersion: 2

@@ -124,6 +124,14 @@ namespace LightAndShadow
         [Min(0.01f)]
         private float shakeDuration = 0.6f;
 
+        [Header("Camera")]
+        [SerializeField]
+        [Tooltip("Seconds the camera takes to swing round to look from the player toward the boss as the intro starts. Its tilt is left alone. 0 snaps; turn off Turn Camera to leave it be.")]
+        [Min(0f)]
+        private float cameraTurnTime = 1f;
+
+        [SerializeField] private bool turnCamera = true;
+
         [Header("Dialogue")]
         [SerializeField] private List<DialogueLine> dialogue = new List<DialogueLine>();
 
@@ -134,8 +142,10 @@ namespace LightAndShadow
         private Vector3? landingOverride;
         private bool dropIn = true;
 
-        // The boss actually fighting: the scene one, or the prefab's spawn.
+        // The boss actually fighting: the scene one, the prefab's spawn, or
+        // one handed over by another intro.
         private Enemy fighter;
+        private Enemy handed;
 
         /// <summary>The boss taking part, once the drop has started; null before.</summary>
         public Enemy Boss => fighter;
@@ -177,9 +187,14 @@ namespace LightAndShadow
 
         private void Awake()
         {
+            // Another intro may hand it a boss later, as a SpearHallIntro does.
             if (boss == null)
             {
-                Debug.LogWarning($"[BossIntro] {name} has no boss assigned.", this);
+                if (startOnTrigger)
+                {
+                    Debug.LogWarning($"[BossIntro] {name} has no boss assigned.", this);
+                }
+
                 return;
             }
 
@@ -234,9 +249,26 @@ namespace LightAndShadow
             return Begin();
         }
 
+        /// <summary>
+        /// Starts the intro now with <paramref name="existing"/>, a boss
+        /// already in the scene, as its boss in place of its own: for an intro
+        /// that has already brought the boss on, such as a
+        /// <see cref="SpearHallIntro"/>. Otherwise as <see cref="Begin(Vector3, bool)"/>.
+        /// </summary>
+        public bool Begin(Enemy existing, Vector3 landing, bool drop)
+        {
+            if (played || existing == null)
+            {
+                return false;
+            }
+
+            handed = existing;
+            return Begin(landing, drop);
+        }
+
         private bool Begin(PlayerMotor player)
         {
-            if (played || boss == null || player == null)
+            if (played || (boss == null && handed == null) || player == null)
             {
                 return false;
             }
@@ -265,7 +297,12 @@ namespace LightAndShadow
 
             Vector3 top = dropIn ? landing + Vector3.up * dropHeight : landing;
 
-            if (BossInScene)
+            if (handed != null)
+            {
+                fighter = handed;
+                fighter.transform.position = top;
+            }
+            else if (BossInScene)
             {
                 fighter = boss;
                 fighter.transform.position = top;
@@ -298,6 +335,11 @@ namespace LightAndShadow
 
             fighter.TurnModelToward(player.position - landing, 360f);
             StartEntranceAnimation();
+
+            if (turnCamera)
+            {
+                TopDownCamera.TurnToward(landing, cameraTurnTime);
+            }
 
             // Falls from rest under constant pull: height drops with the
             // square of time, so it is fastest at the bottom.

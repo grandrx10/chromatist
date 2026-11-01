@@ -82,6 +82,8 @@ namespace LightAndShadow
 
             [Tooltip("Distance the mark is lifted toward the camera, so it draws over the scene. Does not move it on screen.")]
             [Min(0f)] public float lift = 4f;
+
+            public Settings Copy() => (Settings)MemberwiseClone();
         }
 
         // Points along the spine. Enough that each serration is small next to
@@ -122,6 +124,7 @@ namespace LightAndShadow
         private readonly List<int> triangles = new List<int>();
 
         private Settings settings;
+        private float thickness;
         private Action<float> onDealt;
         private Vector3 direction;
         private Color colour;
@@ -130,6 +133,12 @@ namespace LightAndShadow
         private Vector3 source;
         private Vector3 cutPoint;
         private Mesh mesh;
+
+        // Set for a tear an enemy opens: it cuts only this player, once, and
+        // passes enemies by.
+        private PlayerHealth victim;
+        private Action<float> onPlayerHit;
+        private bool playerHit;
 
         private Phase phase;
         private float clock;
@@ -146,14 +155,40 @@ namespace LightAndShadow
         /// each frame anything is hit, for lifesteal. Each enemy hit spews
         /// <paramref name="blood"/> out of its far side, away from
         /// <paramref name="source"/> (the player), drawn with the same material.
+        /// <paramref name="widthScale"/> multiplies the settings' thickness,
+        /// both as drawn and as hit.
         /// </summary>
         public static ScarlettClaw Spawn(Vector3 centre, Vector3 across, Vector3 away, Vector3 source,
                                          Settings settings, ScarlettBlood.Settings blood, Material material,
-                                         Color colour, Action<float> onDealt)
+                                         Color colour, Action<float> onDealt, float widthScale = 1f)
         {
             GameObject host = new GameObject("ScarlettClaw");
             ScarlettClaw claw = host.AddComponent<ScarlettClaw>();
+            claw.thickness = settings.thickness * Mathf.Max(0f, widthScale);
             claw.Launch(centre, across, away, source, settings, blood, material, colour, onDealt);
+            return claw;
+        }
+
+        /// <summary>
+        /// As <see cref="Spawn"/>, but torn open by an enemy: it cuts only
+        /// <paramref name="player"/>, once, for the settings' damage, and
+        /// passes every enemy by. <paramref name="onHit"/> is told the health
+        /// the player lost, if any. The settings' span is replaced by
+        /// <paramref name="span"/>.
+        /// </summary>
+        public static ScarlettClaw SpawnAgainstPlayer(Vector3 centre, Vector3 across, Vector3 away, float span,
+                                                      Settings settings, Material material, Color colour,
+                                                      PlayerHealth player, Action<float> onHit)
+        {
+            Settings sized = settings.Copy();
+            sized.span = Mathf.Max(0.1f, span);
+
+            GameObject host = new GameObject("ScarlettClaw");
+            ScarlettClaw claw = host.AddComponent<ScarlettClaw>();
+            claw.thickness = sized.thickness;
+            claw.victim = player;
+            claw.onPlayerHit = onHit;
+            claw.Launch(centre, across, away, centre, sized, null, material, colour, null);
             return claw;
         }
 
@@ -295,6 +330,21 @@ namespace LightAndShadow
         {
             float deltaTime = Time.deltaTime;
 
+            // Rides along with a running player. The shape is kept in world
+            // points and redrawn every frame, so the points themselves move.
+            Vector3 carry = ChaseFrame.Step(deltaTime);
+
+            if (carry != Vector3.zero)
+            {
+                for (int i = 0; i < Samples; i++)
+                {
+                    spine[i] += carry;
+                }
+
+                source += carry;
+                cutPoint += carry;
+            }
+
             switch (phase)
             {
                 case Phase.Opening:
@@ -337,7 +387,7 @@ namespace LightAndShadow
         /// <summary>Advances the head to <paramref name="target"/> along the spine, cutting corner to corner.</summary>
         private void Open(float target)
         {
-            float radius = Mathf.Max(0.3f, settings.thickness * 0.5f);
+            float radius = Mathf.Max(0.3f, thickness * 0.5f);
             Vector3 start = SpineAt(travelled);
             float dealt = 0f;
 
@@ -347,21 +397,52 @@ namespace LightAndShadow
             {
                 Vector3 corner = spine[segment + 1];
                 cutPoint = corner;
-                dealt += BladeDamage.Sweep(start, corner, radius, settings.damage, direction, hit,
-                                           Bleed, colour, false);
+                dealt += Cut(start, corner, radius);
                 start = corner;
                 segment++;
             }
 
             travelled = target;
             cutPoint = SpineAt(travelled);
-            dealt += BladeDamage.Sweep(start, cutPoint, radius, settings.damage, direction, hit,
-                                       Bleed, colour, false);
+            dealt += Cut(start, cutPoint, radius);
 
             if (dealt > 0f)
             {
                 onDealt?.Invoke(dealt);
             }
+        }
+
+        /// <summary>
+        /// Cuts along one stretch of the spine: every enemy on it, or, for a
+        /// tear an enemy opened, the player alone. Returns the health taken
+        /// off enemies.
+        /// </summary>
+        private float Cut(Vector3 from, Vector3 to, float radius)
+        {
+            if (victim == null)
+            {
+                return BladeDamage.Sweep(from, to, radius, settings.damage, direction, hit, Bleed, colour, false);
+            }
+
+            if (playerHit || victim.IsDead)
+            {
+                return 0f;
+            }
+
+            // Measured flat: the tear lies across the floor, whatever the height.
+            Vector3 at = victim.transform.position;
+            Vector3 offset = new Vector3(at.x - from.x, 0f, at.z - from.z);
+            Vector3 span = new Vector3(to.x - from.x, 0f, to.z - from.z);
+            float along = span.sqrMagnitude > 0.000001f ? Mathf.Clamp01(Vector3.Dot(offset, span) / span.sqrMagnitude) : 0f;
+
+            if ((offset - span * along).sqrMagnitude <= radius * radius)
+            {
+                playerHit = true;
+                float lost = victim.TakeDamage(settings.damage, from + span * along);
+                onPlayerHit?.Invoke(lost);
+            }
+
+            return 0f;
         }
 
         /// <summary>
@@ -431,7 +512,7 @@ namespace LightAndShadow
                 // in float, and a fractional power of a negative is NaN.
                 float profile = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * u)), 1.3f);
                 float head = Mathf.Clamp01((travelled - distances[i]) / headLength);
-                float half = settings.thickness * 0.5f * profile * head * open;
+                float half = thickness * 0.5f * profile * head * open;
 
                 Vector3 left = spine[i] + side[i] * (half * leftEdge[i]);
                 Vector3 right = spine[i] - side[i] * (half * rightEdge[i]);

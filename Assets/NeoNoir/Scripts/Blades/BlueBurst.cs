@@ -60,6 +60,12 @@ namespace LightAndShadow
             [Tooltip("Colour intensity of the floor ring. 1 is the material's own colour; above 1 blooms.")]
             [Min(0f)] public float ringIntensity = 4f;
 
+            [Tooltip("Width of the white border along each edge of the floor ring, to match the game's outlines. 0 for none.")]
+            [Min(0f)] public float ringBorderWidth = 0.025f;
+
+            [Tooltip("Colour of the floor ring's border.")]
+            [ColorUsage(false, true)] public Color ringBorderColour = Color.white;
+
             [Tooltip("Degrees to turn the note models by, if they do not face -Z (toward the viewer) as modelled.")]
             public Vector3 modelRotation;
         }
@@ -85,6 +91,8 @@ namespace LightAndShadow
         private GameObject ring;
         private Mesh ringMesh;
         private MeshRenderer ringRenderer;
+        private Mesh borderMesh;
+        private MeshRenderer borderRenderer;
         private MaterialPropertyBlock block;
         private Color baseColour = Color.white;
         private bool hasFade;
@@ -153,16 +161,25 @@ namespace LightAndShadow
             ring = new GameObject("BurstRing");
             ring.transform.SetParent(transform, false);
 
-            ringMesh = BlueMark.AnnulusMesh(radius - settings.ringThickness * 0.5f, radius + settings.ringThickness * 0.5f, 48);
-            ring.AddComponent<MeshFilter>().sharedMesh = ringMesh;
+            float inner = radius - settings.ringThickness * 0.5f;
+            float outer = radius + settings.ringThickness * 0.5f;
 
-            ringRenderer = ring.AddComponent<MeshRenderer>();
-            ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            ringRenderer.receiveShadows = false;
+            ringMesh = BlueMark.AnnulusMesh(inner, outer, 48);
+            ringRenderer = AddRenderer(ring, ringMesh, material);
+
+            // White edges, as the marks have: flat on the floor, the ring
+            // gives the outline pass no edge to find.
+            if (settings.ringBorderWidth > 0f)
+            {
+                GameObject border = new GameObject("Border");
+                border.transform.SetParent(ring.transform, false);
+
+                borderMesh = BlueMark.BorderMesh(inner, outer, settings.ringBorderWidth, 48);
+                borderRenderer = AddRenderer(border, borderMesh, material);
+            }
 
             if (material != null)
             {
-                ringRenderer.sharedMaterial = material;
                 hasFade = material.HasProperty(FadeId);
 
                 if (material.HasProperty(BaseColorId))
@@ -172,6 +189,22 @@ namespace LightAndShadow
             }
 
             block = new MaterialPropertyBlock();
+        }
+
+        private static MeshRenderer AddRenderer(GameObject host, Mesh mesh, Material material)
+        {
+            host.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            MeshRenderer added = host.AddComponent<MeshRenderer>();
+            added.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            added.receiveShadows = false;
+
+            if (material != null)
+            {
+                added.sharedMaterial = material;
+            }
+
+            return added;
         }
 
         private void Update()
@@ -185,8 +218,12 @@ namespace LightAndShadow
                 return;
             }
 
+            // Carried along with a forced run, keeping up with the enemy.
+            Vector3 carry = ChaseFrame.Step(deltaTime);
+            transform.position += carry;
+
             UpdateRing();
-            UpdateNotes(deltaTime);
+            UpdateNotes(deltaTime, carry);
         }
 
         private void UpdateRing()
@@ -217,9 +254,15 @@ namespace LightAndShadow
             block.SetColor(BaseColorId, colour);
             block.SetFloat(FadeId, visibility);
             ringRenderer.SetPropertyBlock(block);
+
+            if (borderRenderer != null)
+            {
+                block.SetColor(BaseColorId, settings.ringBorderColour);
+                borderRenderer.SetPropertyBlock(block);
+            }
         }
 
-        private void UpdateNotes(float deltaTime)
+        private void UpdateNotes(float deltaTime, Vector3 carry)
         {
             Camera camera = Camera.main;
             Quaternion facing = camera != null ? camera.transform.rotation : Quaternion.identity;
@@ -235,7 +278,7 @@ namespace LightAndShadow
                     continue;
                 }
 
-                note.Position += note.Velocity * deltaTime;
+                note.Position += note.Velocity * deltaTime + carry;
                 note.Velocity *= decay;
                 note.Angle += note.Spin * deltaTime;
 
@@ -259,6 +302,11 @@ namespace LightAndShadow
             if (ringMesh != null)
             {
                 Destroy(ringMesh);
+            }
+
+            if (borderMesh != null)
+            {
+                Destroy(borderMesh);
             }
         }
     }

@@ -27,6 +27,14 @@ namespace LightAndShadow.Rendering
     /// are absent from the main frame, so the edge pass sees the scene behind
     /// them, and blends the layer back over it -- fill and outlines both -- by
     /// each pixel's fade.
+    ///
+    /// After the edges, while a <see cref="NeoNoirLens"/> is showing, a third
+    /// pass bends the finished picture round it, in game cameras only. Still
+    /// before bloom, so what glows glows where it is bent to.
+    ///
+    /// Last, while <see cref="NeoNoirDarkness"/> is above 0, the picture is
+    /// darkened everywhere but the renderers it keeps lit, in game cameras
+    /// only. Still before bloom, so what is kept glows on the black.
     /// </remarks>
     [DisallowMultipleRendererFeature("NeoNoir Post")]
     public sealed class NeoNoirPostFeature : ScriptableRendererFeature
@@ -78,7 +86,26 @@ namespace LightAndShadow.Rendering
             private static readonly int OccluderTextureId = Shader.PropertyToID("_NeoNoirOccluderTexture");
             private static readonly int OccluderColourId = Shader.PropertyToID("_NeoNoirOccluderColour");
 
+            private static readonly int LensCentreId = Shader.PropertyToID("_LensCentre");
+            private static readonly int LensAxesId = Shader.PropertyToID("_LensAxes");
+            private static readonly int LensShapeId = Shader.PropertyToID("_LensShape");
+            private static readonly int LensWaveId = Shader.PropertyToID("_LensWave");
+            private static readonly int LensCoreId = Shader.PropertyToID("_LensCore");
+
+            private static readonly int KeepMaskId = Shader.PropertyToID("_NeoNoirKeepMask");
+            private static readonly int DarknessAmountId = Shader.PropertyToID("_DarknessAmount");
+
+            private static readonly System.Collections.Generic.List<ShaderTagId> KeptTags =
+                new System.Collections.Generic.List<ShaderTagId>
+                {
+                    new ShaderTagId("UniversalForward"),
+                    new ShaderTagId("UniversalForwardOnly"),
+                    new ShaderTagId("SRPDefaultUnlit"),
+                };
+
             private Material material;
+            private Material lensMaterial;
+            private Material darknessMaterial;
 
             private class PassData
             {
@@ -161,6 +188,185 @@ namespace LightAndShadow.Rendering
                 }
 
                 resourceData.cameraColor = destination;
+
+                if (cameraData.cameraType == CameraType.Game && PrepareLens(cameraData.camera))
+                {
+                    TextureHandle bent = UniversalRenderer.CreateRenderGraphTexture(
+                        renderGraph, descriptor, "_NeoNoirLens", false);
+
+                    using (IRasterRenderGraphBuilder builder =
+                           renderGraph.AddRasterRenderPass<PassData>("NeoNoir Lens", out PassData passData))
+                    {
+                        passData.source = destination;
+                        passData.material = lensMaterial;
+
+                        builder.UseTexture(destination, AccessFlags.Read);
+                        builder.SetRenderAttachment(bent, 0, AccessFlags.Write);
+
+                        builder.SetRenderFunc(static (PassData data, RasterGraphContext context) =>
+                        {
+                            Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 0);
+                        });
+                    }
+
+                    resourceData.cameraColor = bent;
+                }
+
+                if (cameraData.cameraType == CameraType.Game && NeoNoirDarkness.Amount > 0f && PrepareDarkness())
+                {
+                    RecordDarkness(renderGraph, frameData, cameraData, descriptor, resourceData.cameraColor);
+                }
+            }
+
+            /// <summary>Makes the darkness material if it is not made yet. False if the shader is missing.</summary>
+            private bool PrepareDarkness()
+            {
+                if (darknessMaterial == null)
+                {
+                    Shader shader = Shader.Find("Hidden/NeoNoir/Darkness");
+
+                    if (shader == null)
+                    {
+                        return false;
+                    }
+
+                    darknessMaterial = CoreUtils.CreateEngineMaterial(shader);
+                }
+
+                darknessMaterial.SetFloat(DarknessAmountId, NeoNoirDarkness.Amount);
+                return true;
+            }
+
+            /// <summary>
+            /// Draws the renderers <see cref="NeoNoirDarkness"/> keeps lit into
+            /// a mask, then darkens the finished picture everywhere but there.
+            /// </summary>
+            private void RecordDarkness(RenderGraph renderGraph, ContextContainer frameData, UniversalCameraData cameraData,
+                RenderTextureDescriptor descriptor, TextureHandle source)
+            {
+                UniversalResourceData resourceData = frameData.Get<UniversalResourceData>();
+                UniversalRenderingData renderingData = frameData.Get<UniversalRenderingData>();
+                UniversalLightData lightData = frameData.Get<UniversalLightData>();
+
+                TextureHandle mask = renderGraph.CreateTexture(new TextureDesc(descriptor.width, descriptor.height)
+                {
+                    name = "_NeoNoirKeepMask",
+                    format = GraphicsFormat.R8_UNorm,
+                    clearBuffer = true,
+                    clearColor = Color.clear,
+                    filterMode = FilterMode.Point
+                });
+
+                DrawingSettings drawing = RenderingUtils.CreateDrawingSettings(
+                    KeptTags, renderingData, cameraData, lightData, SortingCriteria.CommonOpaque);
+                drawing.overrideMaterial = darknessMaterial;
+                drawing.overrideMaterialPassIndex = 0;
+
+                FilteringSettings filtering = new FilteringSettings(
+                    RenderQueueRange.all, ~0, NeoNoirDarkness.RenderingLayer);
+
+                RendererListHandle renderers = renderGraph.CreateRendererList(
+                    new RendererListParams(renderingData.cullResults, drawing, filtering));
+
+                using (IRasterRenderGraphBuilder builder =
+                       renderGraph.AddRasterRenderPass<OccluderPassData>("NeoNoir Darkness Mask", out OccluderPassData passData))
+                {
+                    passData.renderers = renderers;
+
+                    builder.UseRendererList(renderers);
+                    builder.SetRenderAttachment(mask, 0, AccessFlags.Write);
+                    builder.SetGlobalTextureAfterPass(mask, KeepMaskId);
+                    builder.AllowPassCulling(false);
+
+                    builder.SetRenderFunc(static (OccluderPassData data, RasterGraphContext context) =>
+                    {
+                        context.cmd.DrawRendererList(data.renderers);
+                    });
+                }
+
+                TextureHandle dark = UniversalRenderer.CreateRenderGraphTexture(
+                    renderGraph, descriptor, "_NeoNoirDarkness", false);
+
+                using (IRasterRenderGraphBuilder builder =
+                       renderGraph.AddRasterRenderPass<PassData>("NeoNoir Darkness", out PassData passData))
+                {
+                    passData.source = source;
+                    passData.material = darknessMaterial;
+
+                    builder.UseTexture(source, AccessFlags.Read);
+                    builder.UseTexture(mask, AccessFlags.Read);
+                    builder.SetRenderAttachment(dark, 0, AccessFlags.Write);
+                    builder.UseAllGlobalTextures(true);
+
+                    builder.SetRenderFunc(static (PassData data, RasterGraphContext context) =>
+                    {
+                        Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 1);
+                    });
+                }
+
+                resourceData.cameraColor = dark;
+            }
+
+            /// <summary>
+            /// Sets the lens material up for the lens showing, as
+            /// <paramref name="camera"/> sees it. False if there is none, it
+            /// is behind the camera, or the shader is missing.
+            /// </summary>
+            private bool PrepareLens(Camera camera)
+            {
+                if (!NeoNoirLens.Active || camera == null)
+                {
+                    return false;
+                }
+
+                if (lensMaterial == null)
+                {
+                    Shader shader = Shader.Find("Hidden/NeoNoir/Lens");
+
+                    if (shader == null)
+                    {
+                        return false;
+                    }
+
+                    lensMaterial = CoreUtils.CreateEngineMaterial(shader);
+                }
+
+                NeoNoirLens.Lens lens = NeoNoirLens.Current;
+                Vector3 centre = camera.WorldToViewportPoint(lens.centre);
+
+                if (centre.z <= 0f || lens.radius <= 0f)
+                {
+                    return false;
+                }
+
+                Vector3 forward = camera.transform.forward;
+                forward.y = 0f;
+                forward = forward.sqrMagnitude > 0.0001f ? forward.normalized : Vector3.forward;
+
+                Vector3 right = camera.transform.right;
+                right.y = 0f;
+                right = right.sqrMagnitude > 0.0001f ? right.normalized : Vector3.right;
+
+                // One unit of the lens's radius along each, in viewport units.
+                Vector2 across = (Vector2)(camera.WorldToViewportPoint(lens.centre + right * lens.radius) - centre);
+                Vector2 along = (Vector2)(camera.WorldToViewportPoint(lens.centre + forward * lens.radius) - centre);
+
+                lensMaterial.SetVector(LensCentreId, new Vector4(centre.x, centre.y, 0f, 0f));
+                lensMaterial.SetVector(LensAxesId, new Vector4(across.x, across.y, along.x, along.y));
+                lensMaterial.SetVector(LensShapeId, new Vector4(lens.coreFraction, lens.pull,
+                                                                lens.swirl * Mathf.Deg2Rad, lens.chroma));
+                lensMaterial.SetVector(LensWaveId, new Vector4(lens.ripple * Mathf.Deg2Rad, lens.ripples,
+                                                               lens.rippleSpeed, lens.pulse));
+                lensMaterial.SetColor(LensCoreId, lens.coreColour);
+                return true;
+            }
+
+            public void Dispose()
+            {
+                CoreUtils.Destroy(lensMaterial);
+                lensMaterial = null;
+                CoreUtils.Destroy(darknessMaterial);
+                darknessMaterial = null;
             }
 
             /// <summary>
@@ -236,6 +442,7 @@ namespace LightAndShadow.Rendering
 
         protected override void Dispose(bool disposing)
         {
+            pass?.Dispose();
             pass = null;
         }
     }

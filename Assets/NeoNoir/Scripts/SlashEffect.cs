@@ -118,6 +118,21 @@ namespace LightAndShadow
 
         private void Update()
         {
+            // Carried along with a forced run, so a streak stays on the
+            // enemy that was cut as it runs with the player.
+            Vector3 carry = ChaseFrame.Step(Time.deltaTime);
+
+            if (carry != Vector3.zero)
+            {
+                for (int i = 0; i < MaxConcurrent; i++)
+                {
+                    if (active[i])
+                    {
+                        positions[i] += carry;
+                    }
+                }
+            }
+
             Upload();
         }
 

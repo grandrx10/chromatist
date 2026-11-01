@@ -6,7 +6,7 @@ namespace LightAndShadow
     /// <summary>
     /// Blue the Banjo. As a main blade, plays slow music notes at the cursor
     /// that stack rings on the enemies they hit; five rings burst for heavy
-    /// damage and halve every cooldown. As a secondary blade, draws a ring on
+    /// damage and cut every cooldown by a second, more per level. As a secondary blade, draws a ring on
     /// the floor that doubles the player's attack speed while they stand in it.
     /// </summary>
     /// <remarks>
@@ -22,7 +22,9 @@ namespace LightAndShadow
     /// speed buff, picked at random from <see cref="notePrefabs"/>. Notes deal
     /// their own damage; an enemy that survives gets a ring of its
     /// <see cref="BlueMark"/>. Hits make no slash effect -- the rings are the
-    /// feedback.
+    /// feedback. Each burst, and each kill by a note, quickens the primary by
+    /// <see cref="crescendoStep"/>, up to <see cref="crescendoMax"/>, until
+    /// <see cref="crescendoDuration"/> seconds pass with neither.
     ///
     /// Marks only exist while Blue is the main blade. Disabling or destroying
     /// the banjo clears them.
@@ -66,6 +68,22 @@ namespace LightAndShadow
 
         [Header("Primary: marks")]
         [SerializeField] private BlueMark.Settings marks = new BlueMark.Settings();
+
+        [Header("Primary: crescendo")]
+        [SerializeField]
+        [Tooltip("Attack speed added to the primary, as a multiple of normal, each time a mark bursts.")]
+        [Range(0f, 2f)]
+        private float crescendoStep = 0.5f;
+
+        [SerializeField]
+        [Tooltip("Most the primary's attack speed can build up to from bursts, as a multiple of normal.")]
+        [Min(1f)]
+        private float crescendoMax = 2f;
+
+        [SerializeField]
+        [Tooltip("Seconds after the last burst that the attack speed wears off.")]
+        [Min(0f)]
+        private float crescendoDuration = 2f;
 
         [Header("Primary: hold")]
         [SerializeField]
@@ -159,6 +177,8 @@ namespace LightAndShadow
         private float cooldown;
         private float strum;
         private float strumSide = 1f;
+        private float crescendo = 1f;
+        private float crescendoRemaining;
 
         // Secondary state.
         private float perimeterRemaining;
@@ -167,7 +187,13 @@ namespace LightAndShadow
         private float floatBlend;
         private float floatYaw;
 
-        private float AttacksPerSecond => attacksPerSecond * AttackSpeedMultiplier;
+        private float AttacksPerSecond => attacksPerSecond * crescendo * AttackSpeedMultiplier;
+
+        /// <summary>Each level makes the primary fire 1.3 times as fast: x1.3 at level 2, x1.69 at level 3.</summary>
+        protected override float AttackSpeedPerLevel => 1.3f;
+
+        /// <summary>Seconds a burst takes off every cooldown: 1 at level 1, half a second more per level.</summary>
+        private float BurstCooldownCut => 1f + 0.5f * (Level - 1);
 
         /// <summary>
         /// Floating over the ring until it starts to dissolve, so the
@@ -210,6 +236,16 @@ namespace LightAndShadow
 
             cooldown = Mathf.Max(0f, cooldown - deltaTime);
             strum = Mathf.MoveTowards(strum, 0f, deltaTime / strumTime);
+
+            if (crescendoRemaining > 0f)
+            {
+                crescendoRemaining -= deltaTime;
+
+                if (crescendoRemaining <= 0f)
+                {
+                    crescendo = 1f;
+                }
+            }
 
             if (held && cooldown <= 0f)
             {
@@ -334,7 +370,7 @@ namespace LightAndShadow
                 flight = made.AddComponent<SoundNote>();
             }
 
-            flight.Launch(origin, aim, note, obstacleLayers, OnNoteHit, this);
+            flight.Launch(origin, aim, Leveled(note, (n, k) => n.damage *= k), obstacleLayers, OnNoteHit, this);
 
             strum = 1f;
             strumSide = -strumSide;
@@ -367,24 +403,43 @@ namespace LightAndShadow
 
         private void OnNoteHit(EnemyHealth enemy, Vector3 point)
         {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            // A killing note has nothing left to mark, but counts as a burst
+            // toward the crescendo.
+            if (enemy.IsDead)
+            {
+                Crescendo();
+                return;
+            }
+
             // Marks belong to Blue being the main blade.
-            if (Slot != BladeSlot.Main || enemy == null || enemy.IsDead)
+            if (Slot != BladeSlot.Main)
             {
                 return;
             }
 
             if (!markByEnemy.TryGetValue(enemy, out BlueMark mark) || mark == null)
             {
-                mark = BlueMark.Create(enemy, marks, ResolvedEffectMaterial, notePrefabs, OnMarkBurst, this);
+                mark = BlueMark.Create(enemy, Leveled(marks, (m, k) => m.burstDamage *= k), ResolvedEffectMaterial, notePrefabs, OnMarkBurst, this);
                 markByEnemy[enemy] = mark;
             }
 
             mark.AddRing();
         }
 
-        /// <summary>A full mark cuts every cooldown the player has: each secondary's and the dash.</summary>
+        /// <summary>
+        /// A full mark cuts every cooldown the player has, each secondary's
+        /// and the dash, by <see cref="BurstCooldownCut"/> seconds. It also
+        /// quickens the primary, as a killing note does.
+        /// </summary>
         private void OnMarkBurst(BlueMark mark)
         {
+            Crescendo();
+
             if (arsenal == null && Owner != null)
             {
                 arsenal = Owner.GetComponent<BladeArsenal>();
@@ -392,13 +447,20 @@ namespace LightAndShadow
 
             if (arsenal != null)
             {
-                arsenal.ScaleCooldowns(marks.cooldownFactor);
+                arsenal.ReduceCooldowns(BurstCooldownCut);
             }
 
             if (Motor != null)
             {
-                Motor.ScaleDashCooldown(marks.cooldownFactor);
+                Motor.ReduceDashCooldown(BurstCooldownCut);
             }
+        }
+
+        /// <summary>Quickens the primary by one more step, up to <see cref="crescendoMax"/>, and restarts its timer.</summary>
+        private void Crescendo()
+        {
+            crescendo = Mathf.Min(crescendoMax, crescendo + crescendoStep);
+            crescendoRemaining = crescendoDuration;
         }
 
         /// <summary>Forgets marks that have removed themselves.</summary>
@@ -441,7 +503,7 @@ namespace LightAndShadow
             float floor = OwnerCollider != null ? OwnerCollider.bounds.min.y : ownerPosition.y;
 
             floatCentre = new Vector3(ownerPosition.x, floor, ownerPosition.z);
-            BluePerimeter.Create(floatCentre, perimeter, ResolvedEffectMaterial, notePrefabs);
+            BluePerimeter.Create(floatCentre, Leveled(perimeter, (p, k) => p.attackSpeed *= k), ResolvedEffectMaterial, notePrefabs);
 
             perimeterRemaining = perimeter.duration;
             perimeterRunning = true;
@@ -453,6 +515,9 @@ namespace LightAndShadow
 
         private void TickPerimeter(float deltaTime)
         {
+            // Carried along with a forced run, as the ring under it is.
+            floatCentre += ChaseFrame.Step(deltaTime);
+
             if (perimeterRunning)
             {
                 perimeterRemaining -= deltaTime;
@@ -485,6 +550,9 @@ namespace LightAndShadow
             // The marks belong to Blue being out; another main blade has no
             // use for them.
             ClearMarks();
+
+            crescendo = 1f;
+            crescendoRemaining = 0f;
         }
     }
 }

@@ -155,7 +155,7 @@ namespace LightAndShadow
 
             for (int i = 0; i < summoning; i++)
             {
-                Enemy prefab = Pick();
+                Enemy prefab = Pick(units);
 
                 if (prefab == null)
                 {
@@ -196,8 +196,8 @@ namespace LightAndShadow
             }
         }
 
-        /// <summary>A prefab from the list, each as likely as its weight. Null if none can be picked.</summary>
-        private Enemy Pick()
+        /// <summary>A prefab from <paramref name="units"/>, each as likely as its weight. Null if none can be picked.</summary>
+        public static Enemy Pick(IReadOnlyList<SummonOption> units)
         {
             float total = 0f;
 

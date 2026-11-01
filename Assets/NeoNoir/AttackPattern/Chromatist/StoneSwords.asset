@@ -1,0 +1,128 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c7a1f06c13819c41ad5a378b52ab623, type: 3}
+  m_Name: StoneSwords
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.StoneSwordPattern
+  delayAfter: 3
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  dashRange: 12
+  pullRadius: 8
+  rockClearance: 1.5
+  searchSpacing: 1
+  dashSpeed: 25
+  dashAcceleration: 60
+  dashDust:
+    spacing: 0.4
+    puffsPerStep: 2
+    minSpeed: 3
+    size: 0.35
+    lifetime: 0.5
+    rise: 0.8
+    drag: 0.15
+    spread: 1.2
+    colour: {r: 1, g: 1, b: 1, a: 1}
+    material: {fileID: 0}
+  settleTime: 0.15
+  pullStagger: 0.15
+  saturation: 1
+  colourIntensity: 2.5
+  hoverTime: 0.4
+  launchInterval: 0.25
+  recovery: 0.5
+  swords:
+    tintTime: 0.2
+    jerkCount: 3
+    jerkHeight: 0.2
+    jerkTime: 0.06
+    jerkPause: 0.22
+    strainShake: 0.04
+    strainWobble: 3
+    yankTime: 0.25
+    hoverHeight: 2.5
+    hoverBob: 0.1
+    aimTurnSpeed: 360
+    yankShake: 0.1
+    rockFadeTime: 0.45
+    dustPerJerk: 6
+    dustOnYank: 16
+    dustRadius: 0.4
+    dustSpeed: 2.5
+    dust:
+      spacing: 0.4
+      puffsPerStep: 2
+      minSpeed: 3
+      size: 0.3
+      lifetime: 0.6
+      rise: 1.2
+      drag: 0.15
+      spread: 1.2
+      colour: {r: 0.8, g: 0.8, b: 0.8, a: 1}
+      material: {fileID: 0}
+    startSpeed: 6
+    speed: 16
+    accelerationTime: 0.35
+    turnRate: 60
+    trackTime: 1.4
+    diveTurnRate: 60
+    lifetime: 5
+    radius: 0.25
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 129
+    embedDepth: 0.6
+    stickDepth: 0.25
+    stabDamage: 10
+    trailTime: 0.3
+    trailWidth: 0.35
+    fuseTime: 1
+    blastRadius: 5
+    blastDamage: 15
+    blinkRate: {x: 2, y: 12}
+    blinkBoost: 2
+    warningOutline: 0.12
+    floorMask:
+      serializedVersion: 2
+      m_Bits: 1
+    blastShake: 0.4
+    shakeDuration: 0.25
+    sphere:
+      growTime: 0.12
+      fadeTime: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      outlineWidth: 0.15
+      outlineColour: {r: 2, g: 2, b: 2, a: 1}
+      material: {fileID: 0}
+    burst:
+      flashSize: 2
+      flashTime: 0.15
+      sparkCount: 18
+      sparkSize: 0.35
+      sparkSpeed: {x: 6, y: 14}
+      sparkLife: 0.45
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    shatter:
+      flashSize: 0.8
+      flashTime: 0.12
+      sparkCount: 8
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}

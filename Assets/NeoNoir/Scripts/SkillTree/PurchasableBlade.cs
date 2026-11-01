@@ -3,40 +3,46 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 namespace LightAndShadow
 {
     /// <summary>
-    /// A blade stuck in a stone in the shrine, which the player can walk up
-    /// to and acquire. One node of the skill tree.
+    /// A blade stuck in a stone in the Afterworld, which the player can walk
+    /// up to, activate and upgrade. One node of the skill tree.
     /// </summary>
     /// <remarks>
-    /// Walking within range of a blade that is not yet acquired, and whose
-    /// prerequisites all are, shows an "E" prompt. Pressing it locks the
-    /// player's controls and plays <see cref="dialogue"/> in the
-    /// <see cref="DialogueBox"/>. The last line offers Acquire and Leave.
+    /// Walking within range of a blade whose prerequisites are all owned
+    /// shows an "E" prompt. Pressing it locks the player's controls and plays
+    /// the blade's <see cref="stats"/> in the <see cref="DialogueBox"/>, then:
     ///
-    ///   Acquire  the blade is recorded in <see cref="BladeUnlocks"/>, the
-    ///            stone changes colour and the blade starts to glow
-    ///            (<see cref="bladeGlow"/>) while the blade's
-    ///            <see cref="BladeAcquireEffect"/> plays (if it has one), and
-    ///            once the effect's hold time is up, any
-    ///            <see cref="afterAcquire"/> lines play. Then the player is
-    ///            free.
-    ///   Leave    any <see cref="afterLeave"/> lines play and the player is
-    ///            free. Nothing changes; they can come back.
+    ///   Not owned       asks <see cref="activateQuestion"/>, Yes or No.
+    ///   Owned           asks <see cref="upgradeQuestion"/>, Yes or No,
+    ///                   while there is a next level in <see cref="levels"/>.
+    ///   Fully levelled  nothing more; the stats were all there was to say.
+    ///
+    /// No ends the conversation. Yes costs the next level's
+    /// <see cref="BladeLevel.cost"/> in <see cref="ChromaPoints"/>; without
+    /// enough, <see cref="notEnoughChroma"/> is said and nothing changes.
+    /// With enough, the spent orbs fly off the player's ring into the blade
+    /// (<see cref="ChromaOrbs"/>), and once they land:
+    ///
+    ///   Activating  the blade becomes level 1 in <see cref="BladeUnlocks"/>,
+    ///               the stone lights up and the blade starts to glow
+    ///               (<see cref="bladeGlow"/>), the blade's
+    ///               <see cref="BladeAcquireEffect"/> plays (if it has one),
+    ///               the floor lines to the blades it unlocks grow
+    ///               (<see cref="SkillTreeLines"/>), and the level 1 dialogue
+    ///               plays.
+    ///   Upgrading   the blade goes up a level, a
+    ///               <see cref="BladeUpgradeBurst"/> plays round it and it
+    ///               flares, and that level's dialogue plays.
     ///
     /// The tree is the <see cref="requires"/> lists: a blade can be
-    /// interacted with only once every blade listed there is acquired. Luna
-    /// requires nothing; Scarlett, Lavender and Rose each require Luna. The
-    /// glowing lines between them are <see cref="SkillTreeLink"/>s.
+    /// interacted with only once every blade listed there is owned.
     ///
-    /// Acquiring is free for now. Cost goes in <see cref="TryAcquire"/> when
-    /// there is a currency to pay it with.
-    ///
-    /// Acquired state lives in <see cref="BladeUnlocks"/>, not here, so a
-    /// blade acquired on an earlier visit loads with its stone already
-    /// changed.
+    /// Owned state lives in <see cref="BladeUnlocks"/>, not here, so a blade
+    /// activated on an earlier visit loads with its stone already lit.
     /// </remarks>
     public sealed class PurchasableBlade : MonoBehaviour
     {
@@ -46,12 +52,22 @@ namespace LightAndShadow
         /// <summary>The blade showing the prompt right now, if any. Only the nearest one in range does.</summary>
         private static PurchasableBlade focused;
 
+        [Serializable]
+        public sealed class BladeLevel
+        {
+            [Tooltip("Chroma it costs to reach this level.")]
+            [Min(0)] public int cost = 1;
+
+            [Tooltip("Played on reaching this level.")]
+            public List<DialogueLine> dialogue = new List<DialogueLine>();
+        }
+
         [SerializeField]
-        [Tooltip("The blade this acquires.")]
+        [Tooltip("The blade this activates.")]
         private BladeDefinition blade;
 
         [SerializeField]
-        [Tooltip("Blades that must all be acquired before this one can be interacted with. Empty for the root of the tree (Luna).")]
+        [Tooltip("Blades that must all be owned before this one can be interacted with. Empty for the root of the tree (Luna).")]
         private List<PurchasableBlade> requires = new List<PurchasableBlade>();
 
         [Header("Scene parts")]
@@ -60,7 +76,7 @@ namespace LightAndShadow
         private Transform bladeModel;
 
         [SerializeField]
-        [Tooltip("Renderers of the stone beneath the blade, which change colour on acquiring.")]
+        [Tooltip("Renderers of the stone beneath the blade, which light up on activating.")]
         private Renderer[] stoneRenderers = new Renderer[0];
 
         [Header("Interaction")]
@@ -77,49 +93,81 @@ namespace LightAndShadow
 
         [Header("Dialogue")]
         [SerializeField]
-        [Tooltip("Played on interacting. The last line offers the choice; with no lines at all, the choice shows on its own.")]
-        private List<DialogueLine> dialogue = new List<DialogueLine>();
-
-        [SerializeField] private string acquireLabel = "Acquire";
-        [SerializeField] private string leaveLabel = "Leave";
+        [FormerlySerializedAs("dialogue")]
+        [Tooltip("Played every time the blade is interacted with: what it does. Rich text allowed.")]
+        private List<DialogueLine> stats = new List<DialogueLine>();
 
         [SerializeField]
-        [Tooltip("Played after the acquire effect. Optional.")]
-        private List<DialogueLine> afterAcquire = new List<DialogueLine>();
+        [Tooltip("Asked after the stats when the blade is not owned. Leave its text empty to put the choice under the last stats line instead.")]
+        private DialogueLine activateQuestion = new DialogueLine { text = "Activate?" };
 
         [SerializeField]
-        [Tooltip("Played on choosing Leave. Optional.")]
-        private List<DialogueLine> afterLeave = new List<DialogueLine>();
+        [Tooltip("Asked after the stats when the blade is owned and has a next level. Leave its text empty to put the choice under the last stats line instead.")]
+        private DialogueLine upgradeQuestion = new DialogueLine { text = "Upgrade?" };
 
-        [Header("Acquiring")]
+        [SerializeField] private string yesLabel = "Yes";
+        [SerializeField] private string noLabel = "No";
+
+        [SerializeField]
+        [Tooltip("Said on choosing Yes without the Chroma to pay for it.")]
+        private DialogueLine notEnoughChroma = new DialogueLine { text = "Not enough chroma." };
+
+        [SerializeField]
+        [Tooltip("Level 1 is activating the blade; each one after is an upgrade. Each has its Chroma cost and the dialogue played on reaching it.")]
+        private List<BladeLevel> levels = new List<BladeLevel> { new BladeLevel() };
+
+        [Header("Activating")]
         [SerializeField]
         [Tooltip("Colour the stone becomes. HDR: above 1 blooms.")]
         [ColorUsage(false, true)]
-        private Color acquiredStoneColour = Color.white;
+        private Color acquiredStoneColour = new Color(4f, 4f, 4f, 1f);
 
         [SerializeField]
-        [Tooltip("Seconds after choosing Acquire before the stone starts to change. Lets it land with the effect.")]
+        [Tooltip("Seconds after the orb lands before the stone starts to light. Lets it land with the effect.")]
         [Min(0f)]
         private float stoneDelay;
 
         [SerializeField]
-        [Tooltip("Seconds the stone takes to change colour.")]
+        [Tooltip("Seconds the stone takes to light.")]
         [Min(0f)]
         private float stoneChangeTime = 0.6f;
 
         [SerializeField]
-        [Tooltip("How brightly the blade glows once acquired: its own colour times this. Above 1 blooms; 1 is no glow.")]
+        [Tooltip("How brightly the blade glows once owned: its own colour times this. Above 1 blooms; 1 is no glow.")]
         [Min(1f)]
         private float bladeGlow = 3f;
 
         [SerializeField]
-        [Tooltip("Seconds the player is held still after acquiring, when there is no effect to set it.")]
+        [Tooltip("Seconds the player is held still after activating, when there is no effect to set it.")]
         [Min(0f)]
         private float holdWithoutEffect = 0.8f;
 
         [SerializeField]
-        [Tooltip("Raised the moment this blade is acquired, before the effect.")]
+        [Tooltip("Raised the moment this blade is activated, before the effect.")]
         private UnityEvent acquired = new UnityEvent();
+
+        [Header("Upgrading")]
+        [SerializeField]
+        private BladeUpgradeBurst.Settings upgradeEffect = new BladeUpgradeBurst.Settings();
+
+        [SerializeField]
+        [Tooltip("How much brighter than its glow the blade flares on upgrading, before settling back.")]
+        [Min(1f)]
+        private float upgradeFlare = 3f;
+
+        [SerializeField]
+        [Tooltip("Seconds the flare takes to settle.")]
+        [Min(0.01f)]
+        private float upgradeFlareTime = 0.8f;
+
+        [SerializeField]
+        [Tooltip("Rings on the floor round the stone, one per upgrade: a white outline filled with the blade's colour.")]
+        private BladeUpgradeRings.Settings upgradeRings = new BladeUpgradeRings.Settings();
+
+        [SerializeField]
+        [Tooltip("Seconds the player is held still after upgrading, before that level's dialogue.")]
+        [Min(0f)]
+        private float upgradeHold = 1f;
 
         private Transform player;
         private PlayerInputReader input;
@@ -128,16 +176,24 @@ namespace LightAndShadow
         private Color[] stoneStartColours = new Color[0];
         private Renderer[] bladeRenderers = new Renderer[0];
         private Color[] bladeStartColours = new Color[0];
+        private float flare = 1f;
         private bool busy;
+        private BladeUpgradeRings rings;
 
-        /// <summary>Raised by any blade the moment it is acquired.</summary>
+        /// <summary>Raised by any blade the moment it is activated.</summary>
         public static event Action<PurchasableBlade> AnyAcquired;
 
         public BladeDefinition Blade => blade;
 
         public bool IsAcquired => BladeUnlocks.IsAcquired(blade);
 
-        /// <summary>True once every blade in <see cref="requires"/> has been acquired.</summary>
+        /// <summary>0 if not owned, 1 once activated, and one more for each upgrade.</summary>
+        public int Level => BladeUnlocks.LevelOf(blade);
+
+        /// <summary>The highest level there is: one per entry in the levels list, and never less than 1.</summary>
+        public int MaxLevel => Mathf.Max(1, levels.Count);
+
+        /// <summary>True once every blade in <see cref="requires"/> is owned.</summary>
         public bool IsUnlocked
         {
             get
@@ -155,7 +211,7 @@ namespace LightAndShadow
         }
 
         /// <summary>Can be walked up to and interacted with right now.</summary>
-        public bool IsAvailable => blade != null && !IsAcquired && IsUnlocked;
+        public bool IsAvailable => blade != null && IsUnlocked;
 
         public IReadOnlyList<PurchasableBlade> Requires => requires;
 
@@ -245,6 +301,31 @@ namespace LightAndShadow
             }
         }
 
+        /// <summary>How far the stone reaches out from its middle across the floor, or half a metre without one.</summary>
+        public float StoneRadius
+        {
+            get
+            {
+                Vector3 centre = StoneTop;
+                float radius = 0f;
+
+                foreach (Renderer target in stoneRenderers)
+                {
+                    if (target == null)
+                    {
+                        continue;
+                    }
+
+                    Bounds bounds = target.bounds;
+                    radius = Mathf.Max(radius,
+                                       Mathf.Abs(bounds.max.x - centre.x), Mathf.Abs(bounds.min.x - centre.x),
+                                       Mathf.Abs(bounds.max.z - centre.z), Mathf.Abs(bounds.min.z - centre.z));
+                }
+
+                return radius > 0f ? radius : 0.5f;
+            }
+        }
+
         private void Awake()
         {
             effect = GetComponent<BladeAcquireEffect>();
@@ -279,18 +360,32 @@ namespace LightAndShadow
 
             if (blade == null)
             {
-                Debug.LogWarning($"[PurchasableBlade] {name} has no blade assigned, so it can never be acquired.", this);
+                Debug.LogWarning($"[PurchasableBlade] {name} has no blade assigned, so it can never be activated.", this);
             }
         }
 
         private void Start()
         {
-            // Acquired on an earlier visit: already changed, no effect.
+            // Only a scene with blades to buy shows the Chroma and the lines.
+            _ = ChromaOrbs.Instance;
+            _ = SkillTreeLines.Instance;
+
+            // Activated on an earlier visit: already lit, no effect.
             if (IsAcquired)
             {
                 SetStone(1f);
             }
+
+            // Upgrades bought on earlier visits are already ringed.
+            if (blade != null)
+            {
+                rings = BladeUpgradeRings.Create(this, upgradeRings, BladeColour);
+                rings.Show(Mathf.Max(0, Level - 1));
+            }
         }
+
+        /// <summary>The blade model's own colour, before any glow.</summary>
+        private Color BladeColour => bladeStartColours.Length > 0 ? bladeStartColours[0] : Color.white;
 
         private void OnDisable()
         {
@@ -352,8 +447,37 @@ namespace LightAndShadow
                 input.Locked = true;
             }
 
-            // Every line but the last is said; the last one asks.
-            Play(dialogue, 0, dialogue.Count - 1, Ask);
+            if (!IsAcquired)
+            {
+                AskAfterStats(activateQuestion, OnActivateChosen);
+            }
+            else if (Level < MaxLevel)
+            {
+                AskAfterStats(upgradeQuestion, OnUpgradeChosen);
+            }
+            else
+            {
+                Play(stats, Finish);
+            }
+        }
+
+        /// <summary>
+        /// Plays the stats, then asks <paramref name="question"/>. A question
+        /// with no text asks with the last stats line instead, so the stats
+        /// stay up while the player decides.
+        /// </summary>
+        private void AskAfterStats(DialogueLine question, Action<int> chosen)
+        {
+            bool onLastLine = (question == null || string.IsNullOrWhiteSpace(question.text)) && stats.Count > 0;
+
+            if (onLastLine)
+            {
+                Play(stats, 0, stats.Count - 1, () => DialogueBox.Instance.Ask(stats[stats.Count - 1], yesLabel, noLabel, chosen));
+            }
+            else
+            {
+                Play(stats, () => DialogueBox.Instance.Ask(question, yesLabel, noLabel, chosen));
+            }
         }
 
         /// <summary>Plays <paramref name="lines"/> up to but not including <paramref name="end"/>, then calls <paramref name="done"/>.</summary>
@@ -373,40 +497,82 @@ namespace LightAndShadow
             Play(lines, 0, lines != null ? lines.Count : 0, done);
         }
 
-        private void Ask()
+        private void OnActivateChosen(int choice)
         {
-            DialogueLine question = dialogue.Count > 0 ? dialogue[dialogue.Count - 1] : null;
-            DialogueBox.Instance.Ask(question, acquireLabel, leaveLabel, OnChosen);
-        }
-
-        private void OnChosen(int choice)
-        {
-            if (choice == 0 && TryAcquire())
+            if (choice == 0 && Pay())
             {
-                DialogueBox.Instance.Close();
                 StartCoroutine(AcquireSequence());
             }
-            else
+            else if (choice != 0)
             {
-                Play(afterLeave, Finish);
+                Finish();
             }
         }
 
-        /// <summary>Pays for and records the blade. Free for now.</summary>
-        private bool TryAcquire()
+        private void OnUpgradeChosen(int choice)
         {
-            if (!BladeUnlocks.Acquire(blade))
+            if (choice == 0 && Pay())
             {
+                StartCoroutine(UpgradeSequence());
+            }
+            else if (choice != 0)
+            {
+                Finish();
+            }
+        }
+
+        /// <summary>Chroma it costs to reach the next level.</summary>
+        private int NextCost => CostOf(Level + 1);
+
+        private int CostOf(int level)
+        {
+            int index = level - 1;
+            return index >= 0 && index < levels.Count && levels[index] != null ? levels[index].cost : 1;
+        }
+
+        /// <summary>Takes the next level's cost, or says there is not enough and ends the conversation.</summary>
+        private bool Pay()
+        {
+            if (!ChromaPoints.TrySpend(NextCost))
+            {
+                DialogueBox.Instance.Say(notEnoughChroma, Finish);
                 return false;
             }
 
-            acquired.Invoke();
-            AnyAcquired?.Invoke(this);
+            DialogueBox.Instance.Close();
             return true;
+        }
+
+        /// <summary>Flies the spent orbs into the blade and waits for them to land.</summary>
+        private IEnumerator AbsorbOrbs(int cost)
+        {
+            if (cost <= 0)
+            {
+                yield break;
+            }
+
+            bool landed = false;
+            ChromaOrbs.Instance.Absorb(cost, BladeBounds.center, () => landed = true);
+
+            while (!landed)
+            {
+                yield return null;
+            }
         }
 
         private IEnumerator AcquireSequence()
         {
+            yield return AbsorbOrbs(CostOf(1));
+
+            if (!BladeUnlocks.Acquire(blade))
+            {
+                Finish();
+                yield break;
+            }
+
+            acquired.Invoke();
+            AnyAcquired?.Invoke(this);
+
             if (effect != null)
             {
                 effect.Play(this);
@@ -421,7 +587,34 @@ namespace LightAndShadow
                 yield return new WaitForSeconds(hold);
             }
 
-            Play(afterAcquire, Finish);
+            Play(LevelDialogue(1), Finish);
+        }
+
+        private IEnumerator UpgradeSequence()
+        {
+            yield return AbsorbOrbs(CostOf(Level + 1));
+
+            int level = BladeUnlocks.Upgrade(blade);
+            BladeUpgradeBurst.Play(this, upgradeEffect);
+            StartCoroutine(Flare());
+
+            if (rings != null && rings.Count < level - 1)
+            {
+                rings.Form();
+            }
+
+            if (upgradeHold > 0f)
+            {
+                yield return new WaitForSeconds(upgradeHold);
+            }
+
+            Play(LevelDialogue(level), Finish);
+        }
+
+        private List<DialogueLine> LevelDialogue(int level)
+        {
+            int index = level - 1;
+            return index >= 0 && index < levels.Count && levels[index] != null ? levels[index].dialogue : null;
         }
 
         private IEnumerator ChangeStone()
@@ -441,6 +634,24 @@ namespace LightAndShadow
                 yield return null;
             }
 
+            SetStone(1f);
+        }
+
+        /// <summary>The blade blazes past its glow, then settles back.</summary>
+        private IEnumerator Flare()
+        {
+            float clock = 0f;
+
+            while (clock < upgradeFlareTime)
+            {
+                clock += Time.deltaTime;
+                float t = Mathf.Clamp01(clock / upgradeFlareTime);
+                flare = Mathf.Lerp(upgradeFlare, 1f, t * t);
+                SetStone(1f);
+                yield return null;
+            }
+
+            flare = 1f;
             SetStone(1f);
         }
 
@@ -479,7 +690,7 @@ namespace LightAndShadow
                 }
 
                 Color start = bladeStartColours[i];
-                Color glow = start * bladeGlow;
+                Color glow = start * (bladeGlow * flare);
                 glow.a = start.a;
                 SetColour(bladeRenderers[i], Color.Lerp(start, glow, t));
             }

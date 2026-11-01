@@ -1166,7 +1166,7 @@ MonoBehaviour:
   orbitHeight: 1.2
   bobAmplitude: 0.08
   bobFrequency: 0.5
-  followTime: 0.3
+  followTime: 0
   engageTime: 0.12
   releaseTime: 0.3
   attacksPerSecond: 3
@@ -1199,6 +1199,8 @@ MonoBehaviour:
     gap: 0.15
     spacing: 0.22
     thickness: 0.07
+    borderWidth: 0.025
+    borderColour: {r: 1, g: 1, b: 1, a: 1}
     floorOffset: 0.05
     intensity: 1.5
     hitFlash: 2
@@ -1216,7 +1218,12 @@ MonoBehaviour:
       ringGrowth: 1.8
       ringThickness: 0.12
       ringIntensity: 4
+      ringBorderWidth: 0.025
+      ringBorderColour: {r: 1, g: 1, b: 1, a: 1}
       modelRotation: {x: 0, y: 0, z: 0}
+  crescendoStep: 0.5
+  crescendoMax: 2
+  crescendoDuration: 2
   holdDistance: 1.1
   holdHeightOffset: 0
   tipTilt: 20
@@ -1235,12 +1242,50 @@ MonoBehaviour:
     thickness: 0.12
     floorOffset: 0.05
     intensity: 2
+    fillIntensity: 0.6
+    staffBottom: 0.5
+    staffTop: 1.7
+    staffLines: 5
+    staffLineWidth: 0.03
+    barLines: 8
+    barLineWidth: 0.03
+    wallDelay: 0.1
+    wallRiseTime: 0.25
+    wallIntensity: 1.5
+    staffNotes: 8
+    staffNoteScale: 0.35
+    staffNoteSpeed: 40
+    staffNoteHop: 0.6
+    staffNoteHopTime: 0.12
+    staffNotesFaceCamera: 0
+    staffNoteRotation: {x: 0, y: 90, z: 0}
     linesPerSecond: 40
     riseSpeed: 2.5
     lineLength: {x: 0.3, y: 0.8}
     lineWidth: 0.035
     lineLifetime: 0.7
     lineScatter: 0.15
+  floatHeight: 1.4
+  floatSpin: 60
+  floatBob: 0.12
+  floatBobRate: 0.6
+  floatRotation: {x: 0, y: 0, z: 0}
+  floatEngageTime: 0.25
+  killBurst:
+    notes: 12
+    noteScale: 0.7
+    speed: 7
+    lift: 45
+    drag: 3
+    spin: 360
+    lifetime: 0.7
+    ringTime: 0.3
+    ringGrowth: 1.8
+    ringThickness: 0.12
+    ringIntensity: 4
+    ringBorderWidth: 0.025
+    ringBorderColour: {r: 1, g: 1, b: 1, a: 1}
+    modelRotation: {x: 0, y: 0, z: 0}
   effectMaterial: {fileID: 0}
 --- !u!1 &4814370555515195048
 GameObject:

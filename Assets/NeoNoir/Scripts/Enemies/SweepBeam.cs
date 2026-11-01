@@ -24,7 +24,9 @@ namespace LightAndShadow
     ///
     /// The player in it takes <see cref="Settings.damagePerSecond"/>, dealt
     /// in small hits every <see cref="Settings.tickInterval"/> seconds, the
-    /// first the moment they step in. It cannot be parried: a
+    /// first the moment they step in. With <see cref="Settings.singleHit"/>
+    /// it instead hits once, for <see cref="Settings.hitDamage"/>, the first
+    /// time it touches them, and never again however long they stay in it. It cannot be parried: a
     /// <see cref="ParryBarrier"/> is ignored. Colliders belonging to whoever
     /// fired it are ignored too.
     ///
@@ -59,8 +61,17 @@ namespace LightAndShadow
             [Tooltip("Seconds between the small hits the damage is dealt in.")]
             [Min(0.02f)] public float tickInterval = 0.25f;
 
+            [Tooltip("Hit once, for Hit Damage, the first time the beam touches the player, instead of damage over time.")]
+            public bool singleHit;
+
+            [Tooltip("Damage of that one hit, when Single Hit is on.")]
+            [Min(0f)] public float hitDamage = 20f;
+
             [Tooltip("What the beam can hit. Leave the Enemy layer out.")]
             public LayerMask hitMask = ~0;
+
+            [Tooltip("Gift boxes the beam touches are broken, and go off after their fuse. Found on every layer, whatever the Hit Mask.")]
+            public bool breaksGiftBoxes;
 
             [Header("Look")]
             [Tooltip("Colour of the beam. Above 1 blooms. Keep it strongly saturated.")]
@@ -131,6 +142,7 @@ namespace LightAndShadow
         private float stoppedAge = -1f;
         private float flickerAge;
         private float tickWait;
+        private bool hasHit;
         private float sparkWait;
         private float sinceAimed;
 
@@ -337,6 +349,41 @@ namespace LightAndShadow
             {
                 tickWait = settings.tickInterval;
             }
+
+            // Every frame, not on the player's ticks: a box only grazed for a
+            // frame as the beam sweeps past still goes off.
+            if (stoppedAge < 0f && settings.breaksGiftBoxes)
+            {
+                BreakGiftBoxes(reach, settings.radius * width);
+            }
+        }
+
+        /// <summary>Breaks every gift box in the beam, on any layer.</summary>
+        private void BreakGiftBoxes(float reach, float radius)
+        {
+            if (reach <= 0f || radius <= 0f)
+            {
+                return;
+            }
+
+            Vector3 end = origin + direction * reach;
+            int count = Physics.OverlapCapsuleNonAlloc(origin, end, radius, touching,
+                                                       Physics.AllLayers, QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (owner != null && touching[i].transform.IsChildOf(owner))
+                {
+                    continue;
+                }
+
+                GiftBox box = touching[i].GetComponentInParent<GiftBox>();
+
+                if (box != null)
+                {
+                    box.Break();
+                }
+            }
         }
 
         /// <summary>How far the beam runs before a wall, or its full length.</summary>
@@ -416,6 +463,18 @@ namespace LightAndShadow
 
                 if (health != null)
                 {
+                    if (settings.singleHit)
+                    {
+                        if (hasHit)
+                        {
+                            return false;
+                        }
+
+                        hasHit = true;
+                        health.TakeDamage(settings.hitDamage, origin);
+                        return true;
+                    }
+
                     health.TakeDamage(settings.damagePerSecond * settings.tickInterval, origin);
                     return true;
                 }

@@ -12,7 +12,8 @@ namespace LightAndShadow
     /// The direction and the floor height are fixed at the start, so the
     /// wave runs dead straight and can be sidestepped -- unless
     /// <see cref="Settings.curvePerCube"/> bends it, each cube turning a
-    /// little further than the last, so it sweeps round in an arc. It goes
+    /// little further than the last, so it sweeps round in an arc, opening
+    /// out into a spiral with <see cref="Settings.curveFalloff"/>. It goes
     /// through walls: its length is a fixed number of cubes.
     ///
     /// Cubes come from <see cref="Settings.cubePrefab"/>, which is pure art.
@@ -48,6 +49,9 @@ namespace LightAndShadow
             [Tooltip("Degrees the wave turns with each cube, so it sweeps round in an arc. Positive turns clockwise seen from above, negative anticlockwise; 0 runs straight.")]
             public float curvePerCube;
 
+            [Tooltip("Each cube's turn is the last one's times this. Below 1 the arc opens out into a spiral; 1 keeps a steady arc.")]
+            [Min(0f)] public float curveFalloff = 1f;
+
             [Tooltip("Damage each cube deals to the player it touches. A player caught by several cubes takes it from each.")]
             [Min(0f)] public float damage = 10f;
 
@@ -78,6 +82,7 @@ namespace LightAndShadow
         // Where the next cube rises, and the way the wave is heading there.
         private Vector3 cubePosition;
         private Vector3 cubeDirection;
+        private float cubeCurve;
 
         /// <summary>
         /// Starts a wave whose first cube rises at <paramref name="floorPoint"/>,
@@ -109,6 +114,7 @@ namespace LightAndShadow
             transform.position = origin;
             cubePosition = origin;
             cubeDirection = direction;
+            cubeCurve = settings.curvePerCube;
 
             if (settings.cubePrefab == null)
             {
@@ -172,8 +178,9 @@ namespace LightAndShadow
 
             cube.AddComponent<EarthRippleCube>().Arm(settings.damage, groundHeight, waveVelocity, OnCubeParried);
 
-            cubeDirection = Quaternion.AngleAxis(settings.curvePerCube, Vector3.up) * cubeDirection;
+            cubeDirection = Quaternion.AngleAxis(cubeCurve, Vector3.up) * cubeDirection;
             cubePosition += cubeDirection * settings.spacing;
+            cubeCurve *= settings.curveFalloff;
         }
 
         private void OnCubeParried()

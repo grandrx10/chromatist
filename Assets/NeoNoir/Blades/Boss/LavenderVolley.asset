@@ -1,0 +1,157 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d0b2f749c9ed184488a165dec34397f, type: 3}
+  m_Name: LavenderVolley
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LavenderVolleyPattern
+  delayAfter: 0
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  standFraction: 0.5
+  moveTime: 1
+  glistenTime: 1.5
+  glisten:
+    colour: {r: 0.6, g: 0.2, b: 1, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  fallbackHalfWidth: 15
+  fallbackHalfLength: 15
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  arrowPrefab: {fileID: 3034478484918719212, guid: b0b7e953a49122b48826e6a7c319cf62, type: 3}
+  spawnBehind: 12
+  arrowHeight: 1
+  laneSpacing: 0.8
+  fireInterval: 0.3
+  fireJitter: 0.3
+  middleWidth: 16
+  stormStepTime: 0.05
+  stormRestTime: 0
+  stormDamage: 10
+  storm:
+    spearPrefab: {fileID: 168803919913878294, guid: 913f59084adaaab4daf9bc2835251248, type: 3}
+    flightDistance: 14
+    flightTime: 0.2
+    leanAngle: 10
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 0.5
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 10
+    damageRadius: 0.7
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 0.7, g: 0.45, b: 1, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0
+    shakeDuration: 0.15
+  sineTime: 10
+  channelWidth: 7
+  wavePeriod: 3
+  rowTime: 5
+  rowInterval: 0.75
+  circleRadius: 1.5
+  circleSpacing: 3
+  circleStagger: 0.05
+  warnTime: 0.6
+  rowDamage: 10
+  warningColour: {r: 0.7, g: 0.45, b: 1, a: 1}
+  warningOutline: 0.1
+  creepStepTime: 0.2
+  creepReach: 0.75
+  arrowsPerCircle: 3
+  arrowSpread: 0.75
+  rain:
+    spearPrefab: {fileID: 168803919913878294, guid: 913f59084adaaab4daf9bc2835251248, type: 3}
+    flightDistance: 14
+    flightTime: 0.15
+    leanAngle: 35
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 0.6
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 10
+    damageRadius: 1.5
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 0.7, g: 0.45, b: 1, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.15
+    shakeDuration: 0.15
+  circleBurst:
+    ringRadius: 1.8
+    ringWidth: 0.35
+    ringTime: 0.25
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 4
+    debrisSize: 0.25
+    debrisUpSpeed: {x: 4, y: 7}
+    debrisOutSpeed: {x: 2, y: 4}
+    debrisGravity: 25
+    debrisTime: 0.5
+    debrisIntensity: 1.5
+  shakeStrength: 0.15
+  shakeDuration: 0.12
+  gapTime: 2

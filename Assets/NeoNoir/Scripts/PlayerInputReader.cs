@@ -78,7 +78,53 @@ namespace LightAndShadow
             }
         }
 
+        /// <summary>
+        /// While true, movement still reads but nothing else does: no dash,
+        /// attack or interact. For a forced run the player only steers.
+        /// </summary>
+        public bool MoveOnly
+        {
+            get => moveOnly;
+            set
+            {
+                if (moveOnly && !value)
+                {
+                    attackNeedsRelease = true;
+                }
+
+                moveOnly = value;
+            }
+        }
+
+        /// <summary>
+        /// While true, only movement, dash and interact read: no attack,
+        /// secondary or swap. For the Afterworld, where the player carries no
+        /// blades. Set by <see cref="BladeArsenal"/>'s Unarmed option.
+        /// </summary>
+        public bool Unarmed { get; set; }
+
+        /// <summary>
+        /// While true, the attack and the secondary read as idle; movement,
+        /// dash, swap and interact still read. For a room where the blades
+        /// must stay sheathed.
+        /// </summary>
+        public bool AbilitiesLocked
+        {
+            get => abilitiesLocked;
+            set
+            {
+                if (abilitiesLocked && !value)
+                {
+                    attackNeedsRelease = true;
+                }
+
+                abilitiesLocked = value;
+            }
+        }
+
         private bool locked;
+        private bool moveOnly;
+        private bool abilitiesLocked;
         private bool attackNeedsRelease;
 
         private void Awake()
@@ -143,21 +189,45 @@ namespace LightAndShadow
                 PointerPosition = mouse.position.ReadValue();
             }
 
+            // In the settings menu, nothing reaches the player; and the click
+            // that closes it must not carry on as an attack.
+            bool paused = SettingsMenu.IsOpen;
+
+            if (paused)
+            {
+                attackNeedsRelease = true;
+            }
+
             if (attackNeedsRelease)
             {
                 attackNeedsRelease = AttackHeld;
                 AttackHeld = false;
             }
 
-            if (locked)
+            if (locked || paused)
             {
                 move = Vector2.zero;
+            }
+
+            if (locked || moveOnly || paused)
+            {
                 dashPressed = false;
                 interactPressed = false;
                 swapPressed = false;
                 AttackHeld = false;
                 SecondaryPressed = false;
                 dashBufferRemaining = 0f;
+            }
+
+            if (abilitiesLocked || Unarmed)
+            {
+                AttackHeld = false;
+                SecondaryPressed = false;
+            }
+
+            if (Unarmed)
+            {
+                swapPressed = false;
             }
 
             InteractPressed = interactPressed;

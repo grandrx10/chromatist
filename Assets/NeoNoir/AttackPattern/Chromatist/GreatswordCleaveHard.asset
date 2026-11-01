@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18c9b6956f6159448bba50a344aec6ae, type: 3}
+  m_Name: GreatswordCleaveHard
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.GreatswordCleavePattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: 68e2e828389ce98498d34c0be114de86, type: 3}
+  flipEdge: 1
+  colour: {r: 0.6, g: 0.2, b: 1, a: 1}
+  glisten:
+    colour: {r: 0.6, g: 0.2, b: 1, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  riseTime: 0.35
+  gripHeight: 4
+  gripToPivot: 1
+  windup: {x: 10, y: 35}
+  tremble: 0.08
+  trackTurnSpeed: 540
+  homeSpeed: 14
+  homeAcceleration: 20
+  maxApproachTime: 0.7
+  brakeTime: 0.3
+  steps:
+  - kind: 0
+    pauseAfter: 0
+  - kind: 0
+    pauseAfter: 0
+  - kind: 1
+    pauseAfter: 0
+  - kind: 0
+    pauseAfter: 0
+  - kind: 1
+    pauseAfter: 0
+  slashStandOff: 5
+  slashWarnTime: 1
+  lockTime: 0.3
+  swingTime: 0.1
+  slamAngle: 115
+  slamGripHeight: 1.5
+  slamReach: 1
+  slamHoldTime: 0.25
+  slash:
+    damage: 20
+    length: 30
+    width: 5
+    waveTime: 0.15
+    holdTime: 0.3
+    fadeTime: 0.4
+    floorOffset: 0.05
+    hitSlashes: 3
+    hitSlashSize: 2
+    hitColour: {r: 0.30917096, g: 0.019607842, b: 1, a: 1}
+    frontTaper: 3
+    farWidth: 1
+    lineIntensity: 2
+    wallHeight: 4
+    wallWidth: 0.4
+    wallRiseTime: 0.08
+    wallFallTime: 0.35
+    wallIntensity: 4
+    arcRadius: 4.5
+    arcWidth: 1.5
+    arcTime: 0.2
+    arcIntensity: 2
+  slashMaterial: {fileID: 0}
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  slashShake: 0.5
+  cleaveRetreatTime: 0.5
+  cleaveWarnTime: 1.5
+  cleaveRadius: 30
+  cleaveAngle: 150
+  cleaveGripHeight: 1.8
+  cleaveDip: 10
+  cleaveOvershoot: {x: 30, y: 30}
+  cleaveSwingTime: 0.2
+  cleaveHoldTime: 0.4
+  cleave:
+    damage: 30
+    outlineWidth: 0.4
+    warningIntensity: {x: 2, y: 0.6}
+    sweepIntensity: 2.5
+    edgeHeight: 3
+    edgeIntensity: 4
+    holdTime: 0.15
+    fadeTime: 0.4
+    floorOffset: 0.05
+  cleaveShake: 0.8
+  shakeDuration: 0.3

@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 219dfc1ac25231140955ef696910a14e, type: 3}
+  m_Name: LunaRotation
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LunaRotationPattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  circleRadius: 2.5
+  warnTime: 3
+  damage: 10
+  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
+  warningOutline: 0.1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  spearsPerCircle: 1
+  spearSpread: 0.75
+  spear:
+    spearPrefab: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+    flightDistance: 14
+    flightTime: 0.18
+    leanAngle: 30
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 1
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 1
+    damageRadius: 0.7
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 1, g: 0.62, b: 0.08, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.15
+    shakeDuration: 0.15
+  circleBurst:
+    ringRadius: 3
+    ringWidth: 0.5
+    ringTime: 0.3
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 6
+    debrisSize: 0.3
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 2, y: 5}
+    debrisGravity: 25
+    debrisTime: 0.6
+    debrisIntensity: 1.5
+  shakeStrength: 0.2
+  shakeDuration: 0.15
+  pairs: 10
+  firstDistance: 2.5
+  pairSpacing: 5
+  spinTime: 10
+  innerSpeed: 70
+  outerSpeed: 70
+  circleInterval: 0.5
+  circleScatter: 4
+  saturation: 1
+  intensity: 2.5
+  sword:
+    swordPrefab: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+    dropHeight: 20
+    dropTime: 0.5
+    sinkDepth: 0.6
+    touchRadius: 0.8
+    touchDamage: 15
+    touchCooldown: 0.5
+    trail:
+      linger: 1
+      fadeTime: 0.2
+      damagePerSecond: 10
+      tickInterval: 0.25
+      radius: 1
+      width: 3
+      floorOffset: 0.04
+      spacing: 0.15
+      colour: {r: 2, g: 0.44, b: 0.9, a: 1}
+      material: {fileID: 0}
+      petalHeight: 0.3
+      petals:
+        spacing: 0.25
+        size: {x: 0.12, y: 0.22}
+        scatter: 0.35
+        burstSpeed: 1.5
+        carrySpeed: 2
+        drag: 4
+        fallSpeed: 0.25
+        flutter: 0.15
+        flutterRate: 1.2
+        spin: 240
+        floatTime: 0.8
+        floatJitter: 0.6
+        fadeTime: 0.8
+    glistenTime: 1.2
+    glisten:
+      colour: {r: 0.6, g: 0.2, b: 1, a: 1}
+      glowIntensity: 2.5
+      glowPeak: 2
+      glowFadeTime: 0.2
+      gleam:
+        size: 1.6
+        waist: 0.12
+        time: 0.5
+        openFraction: 0.25
+        spin: 45
+        intensity: 4
+        towardCamera: 0.6
+      gleamOffset: {x: 0, y: 0, z: 0}
+      gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+      interval: {x: 0.3, y: 0.07}
+      size: {x: 0.5, y: 1.1}
+      finalSize: 2.5
+    blastRadius: 3
+    blastDamage: 20
+    blast:
+      growTime: 0.15
+      fadeTime: 0.4
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      outlineWidth: 0.2
+      outlineColour: {r: 2, g: 2, b: 2, a: 1}
+      material: {fileID: 0}

@@ -9,13 +9,16 @@ namespace LightAndShadow
 {
     /// <summary>
     /// A visual novel style dialogue box along the bottom of the screen, with
-    /// an optional pair of choices, and the "E" prompt shown over things the
+    /// optional choices (up to <see cref="MaxChoices"/>), and the "E" prompt shown over things the
     /// player can interact with.
     /// </summary>
     /// <remarks>
     /// Text types itself out. Left click while it is typing shows the rest at
     /// once; left click once it is all shown moves on. While a choice is up,
-    /// only a click on one of the choices does anything.
+    /// only a click on one of the choices does anything. Holding C fast
+    /// forwards: each line shows whole and moves on by itself after
+    /// <see cref="fastForwardLineTime"/>, until choices come up or a line
+    /// that cannot be skipped.
     ///
     /// It knows nothing about blades or purchases. Callers drive it one line
     /// at a time with <see cref="Say"/> and <see cref="Ask"/>, and are called
@@ -44,11 +47,6 @@ namespace LightAndShadow
         [SerializeField] [Min(8)] private int fontSize = 34;
         [SerializeField] [Min(8)] private int speakerFontSize = 42;
 
-        [SerializeField]
-        [Tooltip("Typing speed, for lines that do not set their own.")]
-        [Min(1f)]
-        private float charactersPerSecond = 40f;
-
         [Header("Layout (pixels at 1920x1080)")]
         [SerializeField] [Min(0f)] private float screenMargin = 60f;
         [SerializeField] [Min(40f)] private float boxHeight = 240f;
@@ -64,6 +62,12 @@ namespace LightAndShadow
         [Header("Colours")]
         [SerializeField] private Color background = Color.black;
         [SerializeField] private Color foreground = Color.white;
+
+        [Header("Fast forward")]
+        [SerializeField]
+        [Tooltip("While C is held, seconds each line stays on screen, fully shown, before moving on.")]
+        [Min(0f)]
+        private float fastForwardLineTime = 0.1f;
 
         [Header("Interact prompt")]
         [SerializeField]
@@ -86,7 +90,14 @@ namespace LightAndShadow
         private RectTransform bodyRect;
 
         private RectTransform choiceRow;
-        private readonly Choice[] choices = new Choice[2];
+        private readonly Choice[] choices = new Choice[MaxChoices];
+        private int choiceCount;
+
+        /// <summary>The most choices <see cref="Ask(DialogueLine, IReadOnlyList{string}, Action{int})"/> can offer at once.</summary>
+        public const int MaxChoices = 6;
+
+        // Rows hold up to this many, the rows stacked upward from the box.
+        private const int ChoicesPerRow = 3;
 
         private RectTransform prompt;
         private Text promptLabel;
@@ -96,7 +107,9 @@ namespace LightAndShadow
         private int visibleCharacters;
         private int totalCharacters;
         private float typed;
-        private float lineSpeed;
+
+        // Seconds the current line has been fully shown while fast forwarding.
+        private float fastForwardShown;
 
         private Action onAdvance;
         private Action<int> onChosen;
@@ -139,8 +152,22 @@ namespace LightAndShadow
         public static bool IsEngaged => instance != null
                                         && (instance.IsOpen || (instance.prompt != null && instance.prompt.gameObject.activeSelf));
 
+        /// <summary>
+        /// True while dialogue is open, the prompt aside. Static, and never
+        /// makes a box, so other systems can ask cheaply.
+        /// </summary>
+        public static bool IsTalking => instance != null && instance.IsOpen;
+
         /// <summary>True while the current line is still typing itself out.</summary>
         public bool IsTyping => IsOpen && visibleCharacters < totalCharacters;
+
+        /// <summary>
+        /// While true, clicks do nothing: the line types at its own pace and
+        /// cannot be moved on from, for a line that must wait on something
+        /// happening in the scene. Cleared by the next line and by
+        /// <see cref="Close"/>, so set it after <see cref="Say"/>.
+        /// </summary>
+        public bool Unskippable { get; set; }
 
         private void Awake()
         {
@@ -179,8 +206,46 @@ namespace LightAndShadow
         /// </summary>
         public void Ask(DialogueLine line, string first, string second, Action<int> chosen)
         {
-            choices[0].Label.text = first;
-            choices[1].Label.text = second;
+            Ask(line, new[] { first, second }, chosen);
+        }
+
+        /// <summary>
+        /// Shows <paramref name="line"/>, then once it is typed out, one
+        /// choice per entry of <paramref name="options"/>, up to
+        /// <see cref="MaxChoices"/>; any past that are left off.
+        /// <paramref name="chosen"/> is given the index of the one picked.
+        /// Laid out in rows of up to three, reading left to right, top to
+        /// bottom, each row centred above the box.
+        /// </summary>
+        public void Ask(DialogueLine line, IReadOnlyList<string> options, Action<int> chosen)
+        {
+            choiceCount = Mathf.Min(options.Count, MaxChoices);
+
+            int rows = Mathf.Max(1, Mathf.CeilToInt(choiceCount / (float)ChoicesPerRow));
+            int perRow = Mathf.CeilToInt(choiceCount / (float)rows);
+            float rowGap = choiceGap * 0.5f;
+
+            for (int i = 0; i < choices.Length; i++)
+            {
+                bool used = i < choiceCount;
+                choices[i].Rect.gameObject.SetActive(used);
+
+                if (!used)
+                {
+                    continue;
+                }
+
+                choices[i].Label.text = options[i];
+
+                int row = i / perRow;
+                int column = i % perRow;
+                int inRow = Mathf.Min(perRow, choiceCount - row * perRow);
+
+                float x = (column - (inRow - 1) * 0.5f) * (choiceSize.x + choiceGap);
+                float y = (rows - 1 - row) * (choiceSize.y + rowGap);
+                choices[i].Rect.anchoredPosition = new Vector2(x, y);
+            }
+
             Begin(line, true);
             onChosen = chosen;
         }
@@ -191,6 +256,7 @@ namespace LightAndShadow
             onAdvance = null;
             onChosen = null;
             asking = false;
+            Unskippable = false;
             box.gameObject.SetActive(false);
             choiceRow.gameObject.SetActive(false);
         }
@@ -222,6 +288,7 @@ namespace LightAndShadow
             onChosen = null;
             asking = ask;
             hovered = -1;
+            Unskippable = false;
 
             string speaker = line != null ? line.speaker : null;
             bool hasSpeaker = !string.IsNullOrWhiteSpace(speaker);
@@ -239,7 +306,7 @@ namespace LightAndShadow
             totalCharacters = CountVisible(fullText);
             visibleCharacters = 0;
             typed = 0f;
-            lineSpeed = line != null && line.charactersPerSecond > 0f ? line.charactersPerSecond : charactersPerSecond;
+            fastForwardShown = 0f;
 
             box.gameObject.SetActive(true);
             choiceRow.gameObject.SetActive(false);
@@ -259,23 +326,29 @@ namespace LightAndShadow
                 PlacePrompt();
             }
 
-            if (!IsOpen)
+            // The settings menu takes the clicks, and the typing waits for it.
+            if (!IsOpen || SettingsMenu.IsOpen)
             {
                 return;
             }
 
             Mouse mouse = Mouse.current;
-            bool clicked = mouse != null && mouse.leftButton.wasPressedThisFrame;
+            bool clicked = !Unskippable && mouse != null && mouse.leftButton.wasPressedThisFrame;
+
+            // Holding C shows each line whole and moves on by itself. It
+            // stops at choices, and at lines that cannot be skipped.
+            Keyboard keyboard = Keyboard.current;
+            bool fastForward = !Unskippable && keyboard != null && keyboard.cKey.isPressed;
 
             if (IsTyping)
             {
-                if (clicked)
+                if (clicked || fastForward)
                 {
                     visibleCharacters = totalCharacters;
                 }
                 else
                 {
-                    typed += lineSpeed * Time.unscaledDeltaTime;
+                    typed += GameSettings.TextSpeed * Time.unscaledDeltaTime;
                     int whole = Mathf.Min(totalCharacters, Mathf.FloorToInt(typed));
 
                     if (whole == visibleCharacters)
@@ -304,7 +377,12 @@ namespace LightAndShadow
                 return;
             }
 
-            if (clicked)
+            if (fastForward)
+            {
+                fastForwardShown += Time.unscaledDeltaTime;
+            }
+
+            if (clicked || (fastForward && fastForwardShown >= fastForwardLineTime))
             {
                 Action advanced = onAdvance;
                 onAdvance = null;
@@ -329,7 +407,7 @@ namespace LightAndShadow
             {
                 Vector2 pointer = mouse.position.ReadValue();
 
-                for (int i = 0; i < choices.Length; i++)
+                for (int i = 0; i < choiceCount; i++)
                 {
                     if (RectTransformUtility.RectangleContainsScreenPoint(choices[i].Rect, pointer, null))
                     {
@@ -356,7 +434,7 @@ namespace LightAndShadow
 
             // Hovered choices invert: filled with the text colour, text in
             // the background colour.
-            for (int i = 0; i < choices.Length; i++)
+            for (int i = 0; i < choiceCount; i++)
             {
                 bool on = i == hovered;
                 choices[i].Fill.color = on ? foreground : background;
@@ -583,14 +661,15 @@ namespace LightAndShadow
             choiceRow.SetParent(canvasRect, false);
             choiceRow.anchorMin = choiceRow.anchorMax = new Vector2(0.5f, 0f);
             choiceRow.pivot = new Vector2(0.5f, 0f);
-            choiceRow.sizeDelta = new Vector2(choiceSize.x * 2f + choiceGap, choiceSize.y);
+            choiceRow.sizeDelta = Vector2.zero;
             choiceRow.anchoredPosition = new Vector2(0f, screenMargin + boxHeight + choiceGap * 0.5f);
 
+            // Placed by Ask, each from the bottom middle of the row.
             for (int i = 0; i < choices.Length; i++)
             {
                 RectTransform rect = Panel("Choice " + (i + 1), choiceRow, out Image fill);
-                rect.anchorMin = rect.anchorMax = new Vector2(i == 0 ? 0f : 1f, 0.5f);
-                rect.pivot = new Vector2(i == 0 ? 0f : 1f, 0.5f);
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
+                rect.pivot = new Vector2(0.5f, 0f);
                 rect.sizeDelta = choiceSize;
                 rect.anchoredPosition = Vector2.zero;
 

@@ -25,7 +25,7 @@ MonoBehaviour:
   rangeApproachSpeed: 3
   aimTime: 1
   lockTime: 1
-  turnSpeed: 30
+  turnSpeed: 45
   turnDirection: 0
   sweepTime: 12
   originName: RightHandPoint

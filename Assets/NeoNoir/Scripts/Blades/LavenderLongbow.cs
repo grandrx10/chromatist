@@ -152,7 +152,12 @@ namespace LightAndShadow
         private float recoilSpeed = 16f;
 
         [SerializeField]
-        [Tooltip("Seconds after the volley before the ability counts as finished.")]
+        [Tooltip("Seconds between volleys once upgraded: one volley at level 1, and one more for each level after.")]
+        [Min(0f)]
+        private float volleyGap = 0.15f;
+
+        [SerializeField]
+        [Tooltip("Seconds after the last volley before the ability counts as finished.")]
         [Min(0f)]
         private float volleyRecover = 0.25f;
 
@@ -189,6 +194,10 @@ namespace LightAndShadow
 
         // Secondary state.
         private VolleyPhase volleyPhase;
+
+        // Volleys still to fire after the one being drawn.
+        private int volleysLeft;
+        private bool volleyFired;
         private float volleyClock;
         private float volleyBlend;
         private Vector3 volleyAim = Vector3.forward;
@@ -208,11 +217,20 @@ namespace LightAndShadow
 
         private float Period => 1f / (attacksPerSecond * AttackSpeedMultiplier);
 
+        /// <summary>Each level makes the primary fire 1.5 times as fast: x1.5 at level 2, x2.25 at level 3.</summary>
+        protected override float AttackSpeedPerLevel => 1.5f;
+
         /// <summary>How far the string is drawn, 0 at rest to 1 at full draw.</summary>
         private float Drawn
         {
             get
             {
+                // Held by someone else, it is at rest.
+                if (Seized)
+                {
+                    return 0f;
+                }
+
                 float window = Mathf.Min(drawTime, Period);
                 float drawn = window > 0f ? 1f - Mathf.Clamp01(cooldown / window) : (cooldown <= 0f ? 1f : 0f);
 
@@ -295,7 +313,7 @@ namespace LightAndShadow
 
             if (held && cooldown <= 0f && volleyPhase == VolleyPhase.None)
             {
-                Loose(aim, new[] { aim }, arrow, AimHeight());
+                Loose(aim, new[] { aim }, Leveled(arrow, (a, k) => a.vulnerability *= k), AimHeight());
                 cooldown = Period;
             }
 
@@ -336,6 +354,12 @@ namespace LightAndShadow
             transform.SetPositionAndRotation(position, rotation);
 
             UpdateNocked();
+            UpdateString();
+        }
+
+        protected override void TickSeized()
+        {
+            // Posed by whoever holds it; the string still follows the bow.
             UpdateString();
         }
 
@@ -652,9 +676,13 @@ namespace LightAndShadow
                 return;
             }
 
-            // Held at the world origin, unrotated, so the vertices can be
-            // written straight in world space.
-            stringRenderer.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            // Built in world space, then brought into the string's own space:
+            // it sits under the bow, so the bow's scale (such as the setup
+            // circle's highlight) would otherwise stretch it off the bow.
+            Transform space = stringRenderer.transform;
+            space.localPosition = Vector3.zero;
+            space.localRotation = Quaternion.identity;
+            space.localScale = Vector3.one;
             stringRenderer.enabled = Visibility >= 0.5f;
 
             Material material = ResolvedEffectMaterial;
@@ -672,6 +700,11 @@ namespace LightAndShadow
 
             StringSegment(0, top, nock, toCamera);
             StringSegment(4, nock, bottom, toCamera);
+
+            for (int i = 0; i < stringVertices.Length; i++)
+            {
+                stringVertices[i] = space.InverseTransformPoint(stringVertices[i]);
+            }
 
             stringMesh.SetVertices(stringVertices);
             stringMesh.RecalculateBounds();
@@ -703,6 +736,8 @@ namespace LightAndShadow
 
             volleyPhase = VolleyPhase.Drawing;
             volleyClock = 0f;
+            volleysLeft = Level - 1;
+            volleyFired = false;
         }
 
         private void TickVolley(float deltaTime)
@@ -716,14 +751,24 @@ namespace LightAndShadow
 
             if (volleyPhase == VolleyPhase.Drawing)
             {
-                if (volleyClock < volleyDrawTime)
+                // The first volley draws; the ones after follow in quick succession.
+                if (volleyClock < (volleyFired ? volleyGap : volleyDrawTime))
                 {
                     return;
                 }
 
                 FireVolley();
-                volleyPhase = VolleyPhase.Recovering;
                 volleyClock = 0f;
+
+                if (volleysLeft > 0)
+                {
+                    volleysLeft--;
+                    volleyFired = true;
+                    return;
+                }
+
+                volleyFired = false;
+                volleyPhase = VolleyPhase.Recovering;
                 return;
             }
 
@@ -748,11 +793,12 @@ namespace LightAndShadow
                 directions[i] = Quaternion.AngleAxis(angle, Vector3.up) * volleyAim;
             }
 
-            Loose(volleyAim, directions, volleyArrow, AimHeight());
+            Loose(volleyAim, directions, Leveled(volleyArrow, (a, k) => a.vulnerability *= k), AimHeight());
 
             if (Motor != null)
             {
-                Motor.AddImpulse(-volleyAim * recoilSpeed);
+                // Mid-run, only the sideways part: never back into the spears.
+                Motor.AddImpulse(ChaseFrame.Across(-volleyAim * recoilSpeed));
             }
 
             // The bow then draws its next arrow as usual.
@@ -774,6 +820,7 @@ namespace LightAndShadow
             if (volleyPhase != VolleyPhase.None)
             {
                 volleyPhase = VolleyPhase.None;
+                volleyFired = false;
                 FinishSecondary();
             }
         }

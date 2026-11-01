@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3106026312199820395}
   - component: {fileID: 5580675406050608723}
   - component: {fileID: 3284055675261999721}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Cube (16)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -370,7 +370,7 @@ GameObject:
   - component: {fileID: 4510640658626169856}
   - component: {fileID: 3462123696283745666}
   - component: {fileID: 7711801729811852156}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Cube (14)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -726,7 +726,7 @@ GameObject:
   - component: {fileID: 5853259565160356390}
   - component: {fileID: 6856178410041949534}
   - component: {fileID: 3591710117148911141}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Cube (15)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1082,7 +1082,7 @@ GameObject:
   - component: {fileID: 8991098955168778310}
   - component: {fileID: 2516711677933403377}
   - component: {fileID: 1704238250018438050}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Cube (17)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1438,7 +1438,7 @@ GameObject:
   - component: {fileID: 2365999799232858823}
   - component: {fileID: 5836450257341037590}
   - component: {fileID: 2240067918867225968}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2862,7 +2862,7 @@ GameObject:
   - component: {fileID: 3400033581900505300}
   - component: {fileID: 751953932666766853}
   - component: {fileID: 8156310720973309201}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Pipe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4715,7 +4715,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 321312370604282557}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Gravestone
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -50,6 +50,9 @@ namespace LightAndShadow
             [Tooltip("Seconds from bud to full bloom.")]
             [Min(0.01f)] public float bloomTime = 0.5f;
 
+            [Tooltip("Degrees the lotus turns through as it blooms, fast at first and settling as it opens. Negative turns the other way.")]
+            public float bloomSpin = 180f;
+
             [Tooltip("Height above the floor the lotus sits at.")]
             [Range(0f, 1f)] public float floorOffset = 0.05f;
 
@@ -152,6 +155,11 @@ namespace LightAndShadow
 
         private Phase phase;
         private float age;
+        private float plantYaw;
+
+        // Set for a boss's lotus: it hurts the player through this rather
+        // than enemies.
+        private Action<Vector3> hostileBurst;
 
         /// <summary>
         /// Plants a bud at <paramref name="floorPoint"/>. <paramref name="player"/>
@@ -170,6 +178,21 @@ namespace LightAndShadow
             return lotus;
         }
 
+        /// <summary>
+        /// Plants a boss's bud at <paramref name="floorPoint"/>. It blooms as
+        /// any lotus does and bursts the moment it is fully open, hurting no
+        /// enemy: <paramref name="burst"/> is told where, to deal with the
+        /// player. Nothing can step on it. Burst On Bloom and the step, heal
+        /// and damage settings are ignored.
+        /// </summary>
+        public static SageLotus PlantHostile(Vector3 floorPoint, Settings settings, Material material, GameObject model,
+                                             Action<Vector3> burst)
+        {
+            SageLotus lotus = Plant(floorPoint, settings, material, model, null, Color.black);
+            lotus.hostileBurst = burst;
+            return lotus;
+        }
+
         private void Begin(Vector3 floorPoint, Settings plantSettings, Material plantMaterial, GameObject model,
                            Transform plantPlayer, Color tint, Blade plantSource)
         {
@@ -179,7 +202,8 @@ namespace LightAndShadow
             slashTint = tint;
             source = plantSource;
 
-            transform.SetPositionAndRotation(floorPoint, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+            plantYaw = Random.Range(0f, 360f);
+            transform.SetPositionAndRotation(floorPoint, Quaternion.Euler(0f, plantYaw, 0f));
 
             BakedModel baked = model != null ? Bake(model) : null;
 
@@ -337,6 +361,9 @@ namespace LightAndShadow
         {
             age += Time.deltaTime;
 
+            // Not carried along with a run: it stays where it was cast, so a
+            // running player leaves it behind.
+
             switch (phase)
             {
                 case Phase.Blooming:
@@ -346,12 +373,15 @@ namespace LightAndShadow
                     float eased = 1f - (1f - t) * (1f - t);
                     SetBloom(Mathf.Lerp(settings.startScale, 1f, eased));
 
+                    // Turning with the same ease, so it stops as it settles open.
+                    transform.rotation = Quaternion.Euler(0f, plantYaw + settings.bloomSpin * eased, 0f);
+
                     if (t < 1f)
                     {
                         break;
                     }
 
-                    if (settings.burstOnBloom)
+                    if (hostileBurst != null || settings.burstOnBloom)
                     {
                         Burst(false);
                         return;
@@ -488,20 +518,34 @@ namespace LightAndShadow
         {
             Vector3 floor = transform.position;
 
+            // An upgraded scepter's lotuses heal and hurt more.
+            float level = source != null ? source.LevelScale : 1f;
+
             if (byPlayer && settings.heal > 0f && player != null)
             {
                 PlayerHealth health = player.GetComponent<PlayerHealth>();
 
                 if (health != null)
                 {
-                    health.Heal(settings.heal);
+                    health.Heal(settings.heal * level);
                 }
             }
 
-            if ((!byPlayer || settings.damageWhenPlayerSteps) && settings.damage > 0f)
+            float dealt = 0f;
+
+            if (hostileBurst != null)
             {
-                BladeDamage.Sweep(floor, floor + Vector3.up * CheckHeight, settings.burstRadius, settings.damage,
-                                  Vector3.zero, hit, OnHit, slashTint, false, source: source);
+                hostileBurst(floor);
+            }
+            else if ((!byPlayer || settings.damageWhenPlayerSteps) && settings.damage > 0f)
+            {
+                dealt = BladeDamage.Sweep(floor, floor + Vector3.up * CheckHeight, settings.burstRadius, settings.damage * level,
+                                          Vector3.zero, hit, OnHit, slashTint, false, source: source);
+            }
+
+            if (source is SageScepter scepter)
+            {
+                scepter.OnLotusBurst(settings, byPlayer, dealt > 0f);
             }
 
             // Starts small and flares out to the burst radius.

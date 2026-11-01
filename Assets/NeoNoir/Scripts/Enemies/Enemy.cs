@@ -19,12 +19,24 @@ namespace LightAndShadow
     /// on: healing back above a threshold, as a <see cref="WitchHealPattern"/>
     /// does, never returns the enemy to an earlier phase.
     ///
+    /// With more than one phase, none can be skipped: until a phase has
+    /// started at least one attack, no blow can take the health past the
+    /// start of the phase after the next, nor kill the enemy before its last
+    /// phase has attacked. Each blow stops at that floor. A phase with no
+    /// attacks never holds things up.
+    ///
     /// Within a phase, attacks run one at a time in list order and loop. Each
     /// attack plays out fully, then the enemy waits that attack's
     /// <see cref="AttackPattern.DelayAfter"/>. The phase is only re-checked
     /// between attacks, so crossing a threshold never interrupts an attack
     /// halfway through; the next attack comes from the new phase, starting at
     /// its first pattern.
+    ///
+    /// A phase's cut-ins break into that loop: after each attack, every
+    /// cut-in other than the attack just performed rolls its
+    /// <see cref="CutIn.chance"/>, in list order, and the first to succeed
+    /// is performed next. The loop then carries on where it left off. A
+    /// change of phase drops a cut-in that was waiting.
     ///
     /// An enemy starts dormant: standing still in its idle animation, neither
     /// turning nor attacking. It wakes for good the moment the player comes
@@ -50,6 +62,12 @@ namespace LightAndShadow
     /// without one, the root is moved directly and passes through anything.
     /// A body left on no interpolation is switched to Interpolate, or it would
     /// only move on physics steps and stutter on screen, worst at speed.
+    ///
+    /// With a <see cref="lastStand"/> set, the enemy cannot die. The blow
+    /// that would kill it leaves it on 1 health and invulnerable; the attack
+    /// under way plays out, the wait after it is cut short, and the last
+    /// stand is performed as its final attack. The enemy attacks no more
+    /// after it: whatever ends the fight is up to the attack.
     /// </remarks>
     [RequireComponent(typeof(EnemyHealth))]
     public sealed class Enemy : MonoBehaviour
@@ -68,6 +86,18 @@ namespace LightAndShadow
 
             [Tooltip("Attacks performed in this phase, in order, looping.")]
             public List<AttackPattern> patterns = new List<AttackPattern>();
+
+            [Tooltip("Attacks that may cut in after any other attack, each at its own odds, before the loop carries on where it was.")]
+            public List<CutIn> cutIns = new List<CutIn>();
+        }
+
+        [Serializable]
+        public sealed class CutIn
+        {
+            public AttackPattern pattern;
+
+            [Tooltip("Odds, 0 to 1, that this comes next after any attack other than itself. 0.2 is one in five.")]
+            [Range(0f, 1f)] public float chance = 0.2f;
         }
 
         [Header("Parts")]
@@ -105,6 +135,10 @@ namespace LightAndShadow
 
         [SerializeField]
         private List<Phase> phases = new List<Phase> { new Phase { name = "Phase 1" } };
+
+        [SerializeField]
+        [Tooltip("Played once, as the final attack, when a blow would kill the enemy: it is left on 1 health, invulnerable, instead. The attack decides how the fight ends. Empty lets the enemy die as usual.")]
+        private AttackPattern lastStand;
 
         /// <summary>The idle state used when the Idle Animation field is left empty.</summary>
         public const string DefaultIdleAnimation = "GuardIdle";
@@ -152,6 +186,12 @@ namespace LightAndShadow
         private Collider bodyCollider;
         private Collider targetCollider;
         private int phaseIndex = -1;
+        private bool lastStandDue;
+
+        // The phases from first to last, by start percentage, and how far
+        // along them an attack has been played: none can be skipped.
+        private readonly List<int> phaseOrder = new List<int>();
+        private int attackedThrough = -1;
 
         // Movement of the current attack, from its start until the next's.
         private AttackPattern.MovementSettings movement;
@@ -168,6 +208,9 @@ namespace LightAndShadow
 
         /// <summary>Raised when the enemy moves into a new phase, with its index in the list.</summary>
         public event Action<Enemy, int> PhaseChanged;
+
+        /// <summary>Raised as each attack begins, once its movement and animation have started.</summary>
+        public event Action<Enemy, AttackPattern> AttackStarted;
 
         /// <summary>Raised once, when the enemy wakes from dormant.</summary>
         public event Action<Enemy> Awakened;
@@ -191,6 +234,9 @@ namespace LightAndShadow
         /// <summary>Index of the current phase in the list, or -1 before the first attack.</summary>
         public int PhaseIndex => phaseIndex;
 
+        /// <summary>The phases, in order, with their attacks.</summary>
+        public IReadOnlyList<Phase> Phases => phases;
+
         /// <summary>How the enemy is really moving across the floor this frame, in units per second. Flat.</summary>
         public Vector3 Velocity { get; private set; }
 
@@ -207,8 +253,38 @@ namespace LightAndShadow
         /// </summary>
         public Vector3? ArenaCentre { get; set; }
 
+        /// <summary>
+        /// The arena the enemy fights in, for attacks that bring things into
+        /// it, such as <see cref="SummonPuppetsPattern"/>. Null until something
+        /// sets one, such as <see cref="PuppeteerIntro"/>.
+        /// </summary>
+        public ArenaBounds Arena { get; set; }
+
+        /// <summary>
+        /// Whoever called the enemy into the fight, for attacks laid out
+        /// relative to them, such as <see cref="LavenderVolleyPattern"/>.
+        /// Null unless something sets one, such as <see cref="LunaCaptives"/>.
+        /// </summary>
+        public Transform Summoner { get; set; }
+
         /// <summary>While true the enemy cannot wake, neither by the player coming close nor by taking damage.</summary>
         public bool StayDormant { get; set; }
+
+        /// <summary>
+        /// While true the enemy leaves its body to physics: it neither moves
+        /// nor turns its model, so shoves, blasts and gravity have their way.
+        /// For something like a <see cref="GiftBox"/>, which never walks.
+        /// </summary>
+        public bool PhysicsDriven { get; set; }
+
+        /// <summary>
+        /// While true the enemy starts no new attack: it finishes the one it
+        /// is on, then waits. For a cutscene, such as
+        /// <see cref="PuppeteerPhaseTwo"/>, to have the stage to itself. A
+        /// phase change is raised before the wait, so a listener can set this
+        /// in time to hold the new phase's first attack.
+        /// </summary>
+        public bool HoldAttacks { get; set; }
 
         /// <summary>
         /// While set, the model turns toward this flat direction instead of
@@ -272,6 +348,31 @@ namespace LightAndShadow
         {
             health = GetComponent<EnemyHealth>();
             body = GetComponent<Rigidbody>();
+
+            if (lastStand != null)
+            {
+                health.CannotDie = true;
+            }
+
+            phaseOrder.Clear();
+
+            for (int i = 0; i < phases.Count; i++)
+            {
+                if (phases[i] != null)
+                {
+                    phaseOrder.Add(i);
+                }
+            }
+
+            // Stable: phases starting at the same percentage keep list order.
+            phaseOrder.Sort((a, b) =>
+            {
+                int byStart = phases[b].startsAtHealthPercent.CompareTo(phases[a].startsAtHealthPercent);
+                return byStart != 0 ? byStart : a.CompareTo(b);
+            });
+
+            UpdatePhaseFloor();
+
             bodyCollider = GetComponent<Collider>();
 
             if (body != null && body.interpolation == RigidbodyInterpolation.None)
@@ -316,6 +417,7 @@ namespace LightAndShadow
         {
             health.Died += OnDied;
             health.Damaged += OnDamaged;
+            health.DeathPrevented += OnDeathPrevented;
             movement = null;
             ClearOverrides();
             lastPosition = transform.position;
@@ -327,6 +429,7 @@ namespace LightAndShadow
         {
             health.Died -= OnDied;
             health.Damaged -= OnDamaged;
+            health.DeathPrevented -= OnDeathPrevented;
             StopAllCoroutines();
             movement = null;
             ClearOverrides();
@@ -344,6 +447,15 @@ namespace LightAndShadow
             Wake();
         }
 
+        private void OnDeathPrevented(EnemyHealth saved)
+        {
+            if (lastStand != null && !lastStandDue)
+            {
+                lastStandDue = true;
+                health.Invulnerable = true;
+            }
+        }
+
         private void OnDied(EnemyHealth died)
         {
             StopAllCoroutines();
@@ -353,7 +465,7 @@ namespace LightAndShadow
 
         private void Update()
         {
-            if (!health.IsDead && IsAwake)
+            if (!health.IsDead && IsAwake && !PhysicsDriven)
             {
                 if (SpinOverride.HasValue)
                 {
@@ -398,7 +510,7 @@ namespace LightAndShadow
 
         private void FixedUpdate()
         {
-            if (health.IsDead)
+            if (health.IsDead || PhysicsDriven)
             {
                 return;
             }
@@ -679,6 +791,7 @@ namespace LightAndShadow
             }
 
             int patternIndex = 0;
+            AttackPattern cutIn = null;
 
             while (!health.IsDead)
             {
@@ -695,6 +808,7 @@ namespace LightAndShadow
                 {
                     phaseIndex = current;
                     patternIndex = 0;
+                    cutIn = null;
 
                     if (current >= 0)
                     {
@@ -702,7 +816,24 @@ namespace LightAndShadow
                     }
                 }
 
-                AttackPattern pattern = NextPattern(current, ref patternIndex);
+                while (HoldAttacks && !health.IsDead)
+                {
+                    yield return null;
+                }
+
+                if (health.IsDead)
+                {
+                    yield break;
+                }
+
+                if (lastStandDue)
+                {
+                    yield return LastStand();
+                    yield break;
+                }
+
+                AttackPattern pattern = cutIn != null ? cutIn : NextPattern(current, ref patternIndex);
+                cutIn = null;
 
                 // Nothing to do yet -- no phase, an empty one, or no player in
                 // the scene. Check again next frame.
@@ -732,24 +863,37 @@ namespace LightAndShadow
 
                 BeginMovement(pattern.Movement);
                 PlayAnimation(pattern.AttackAnimation, BlendOrDefault(pattern.AttackAnimationBlend));
+                MarkPhaseAttacked();
+                AttackStarted?.Invoke(this, pattern);
 
                 yield return StartCoroutine(pattern.Perform(this));
+                cutIn = RollCutIn(current, pattern);
 
                 if (!string.IsNullOrEmpty(pattern.AttackAnimation))
                 {
                     PlayAnimation(IdleAnimation, BlendOrDefault(pattern.IdleReturnBlend));
                 }
 
-                if (pattern.DelayAfter > 0f)
+                // At least a frame, so a zero-delay loop never spins inside
+                // one. A last stand falling due cuts the wait short.
+                float waited = 0f;
+
+                do
                 {
-                    yield return new WaitForSeconds(pattern.DelayAfter);
-                }
-                else
-                {
-                    // Never spin a zero-delay loop inside one frame.
                     yield return null;
+                    waited += Time.deltaTime;
                 }
+                while (waited < pattern.DelayAfter && !lastStandDue);
             }
+        }
+
+        private IEnumerator LastStand()
+        {
+            BeginMovement(lastStand.Movement);
+            PlayAnimation(lastStand.AttackAnimation, BlendOrDefault(lastStand.AttackAnimationBlend));
+            AttackStarted?.Invoke(this, lastStand);
+
+            yield return StartCoroutine(lastStand.Perform(this));
         }
 
         /// <summary>
@@ -782,6 +926,80 @@ namespace LightAndShadow
             return blend >= 0f ? blend : animationBlend;
         }
 
+        /// <summary>
+        /// Counts an attack as played in the current phase, letting the enemy
+        /// be worn down into the next one (or killed, in the last). Called as
+        /// each of its own attacks starts; a script running a phase's attacks
+        /// itself, as <see cref="ChromatistPhaseThree"/> does, calls it too.
+        /// </summary>
+        public void MarkPhaseAttacked()
+        {
+            int position = phaseOrder.IndexOf(phaseIndex);
+
+            if (position > attackedThrough)
+            {
+                attackedThrough = position;
+                UpdatePhaseFloor();
+            }
+        }
+
+        /// <summary>
+        /// With more than one phase, keeps the health from reaching past the
+        /// phase after the last one to have played an attack: down into that
+        /// next phase, but no further, and never to death until the last phase
+        /// has played one. A phase with no attacks never holds things up.
+        /// One phase alone sets no floor, so ordinary enemies die as usual.
+        /// </summary>
+        private void UpdatePhaseFloor()
+        {
+            if (phaseOrder.Count < 2)
+            {
+                health.MinimumHealth = 0f;
+                return;
+            }
+
+            // Past every phase played, and any empty one after them.
+            int through = attackedThrough;
+
+            while (through + 1 < phaseOrder.Count && !HasAttacks(phaseOrder[through + 1]))
+            {
+                through++;
+            }
+
+            int next = through + 1;
+
+            if (next >= phaseOrder.Count)
+            {
+                // The last phase has played: free to die.
+                health.MinimumHealth = 0f;
+                return;
+            }
+
+            if (next + 1 >= phaseOrder.Count)
+            {
+                // Down into the last phase, but not dead before it plays.
+                health.MinimumHealth = EnemyHealth.DeathFloor;
+                return;
+            }
+
+            // Down into the next phase, but just short of the one after.
+            float start = phases[phaseOrder[next + 1]].startsAtHealthPercent;
+            health.MinimumHealth = Mathf.Max(EnemyHealth.DeathFloor, health.MaxHealth * start / 100f + 0.01f);
+        }
+
+        private bool HasAttacks(int phase)
+        {
+            foreach (AttackPattern pattern in phases[phase].patterns)
+            {
+                if (pattern != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>The phase with the lowest start the health has dropped to, or -1 if none has started.</summary>
         private int FindPhase()
         {
@@ -801,6 +1019,29 @@ namespace LightAndShadow
         }
 
         /// <summary>The next non-empty pattern slot in the phase, advancing the index past it.</summary>
+        /// <summary>
+        /// The cut-in, if any, to perform after <paramref name="performed"/>:
+        /// the first in the phase's list, other than it, whose odds come up.
+        /// </summary>
+        private AttackPattern RollCutIn(int phase, AttackPattern performed)
+        {
+            if (phase < 0)
+            {
+                return null;
+            }
+
+            foreach (CutIn entry in phases[phase].cutIns)
+            {
+                if (entry != null && entry.pattern != null && entry.pattern != performed &&
+                    UnityEngine.Random.value < entry.chance)
+                {
+                    return entry.pattern;
+                }
+            }
+
+            return null;
+        }
+
         private AttackPattern NextPattern(int phase, ref int patternIndex)
         {
             if (phase < 0)
@@ -824,7 +1065,8 @@ namespace LightAndShadow
             return null;
         }
 
-        private bool PlayerInRange()
+        /// <summary>True if the player is within the enemy's detection radius.</summary>
+        public bool PlayerInRange()
         {
             return ResolveTarget()
                 && (target.position - transform.position).sqrMagnitude <= detectionRadius * detectionRadius;

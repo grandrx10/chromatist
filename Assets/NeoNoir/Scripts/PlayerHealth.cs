@@ -88,7 +88,8 @@ namespace LightAndShadow
         }
 
         /// <summary>
-        /// Deals damage, scaled by <see cref="DamageTakenMultiplier"/>.
+        /// Deals damage, scaled by <see cref="DamageTakenMultiplier"/>, or
+        /// none at all while dialogue is open.
         /// Returns the amount actually lost, which is less than asked when it
         /// runs out, and 0 when already dead. <paramref name="source"/> is
         /// where the hit came from, for effects; leave it out when there is no
@@ -96,6 +97,12 @@ namespace LightAndShadow
         /// </summary>
         public float TakeDamage(float amount, Vector3? source = null)
         {
+            // Nothing can hurt the player mid-conversation.
+            if (DialogueBox.IsTalking)
+            {
+                return 0f;
+            }
+
             amount *= DamageTakenMultiplier;
 
             if (IsDead || amount <= 0f)

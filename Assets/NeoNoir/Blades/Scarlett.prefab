@@ -164,11 +164,12 @@ MonoBehaviour:
   orbitHeight: 1.2
   bobAmplitude: 0.08
   bobFrequency: 0.5
-  followTime: 0.3
+  followTime: 0
   engageTime: 0.12
   releaseTime: 0.3
   attacksPerSecond: 2.5
   lowHealthAttackSpeed: 2
+  lowHealthThickness: 2
   maxRange: 12
   lifesteal: 0.05
   cutHeightOffset: 0

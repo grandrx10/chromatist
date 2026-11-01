@@ -175,7 +175,8 @@ namespace LightAndShadow
             float rate = settings.flutterRate * Mathf.PI * 2f;
             Vector3 sway = swayDirection * (settings.flutter * rate * Mathf.Cos(swayPhase + rate * age));
 
-            transform.position += (velocity + sway) * deltaTime;
+            // Rides along with a running player on top of its own drift.
+            transform.position += (velocity + sway) * deltaTime + ChaseFrame.Step(deltaTime);
             transform.rotation = Quaternion.AngleAxis(spinRate * deltaTime, spinAxis) * transform.rotation;
 
             float fadeStart = lifetime - settings.fadeTime;

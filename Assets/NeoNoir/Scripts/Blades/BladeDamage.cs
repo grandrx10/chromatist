@@ -30,7 +30,9 @@ namespace LightAndShadow
         /// <paramref name="slashScale"/> times normal size, fire together on
         /// every enemy hit, fanned across a half turn so they cross.
         /// <paramref name="source"/> is the blade the attack belongs to, told
-        /// about any kill.
+        /// about any kill. An enemy whose guard parries the blow takes nothing
+        /// and shows no hit; <paramref name="onParried"/>, if given, is told
+        /// about it, with the point it was parried at.
         /// Returns the total health actually taken off, which is less than
         /// damage times hits when a blow kills -- what lifesteal heals from.
         /// </summary>
@@ -38,7 +40,8 @@ namespace LightAndShadow
                                   Vector3 direction, HashSet<EnemyHealth> alreadyHit,
                                   Action<EnemyHealth, Vector3> onHit = null,
                                   Color slashTint = default, bool slashEffect = true,
-                                  int slashCount = 1, float slashScale = 1f, Blade source = null)
+                                  int slashCount = 1, float slashScale = 1f, Blade source = null,
+                                  Action<EnemyHealth, Vector3> onParried = null)
         {
             Collider[] overlaps = Physics.OverlapCapsule(start, end, radius, ~0, QueryTriggerInteraction.Ignore);
             float dealt = 0f;
@@ -54,6 +57,12 @@ namespace LightAndShadow
 
                 // Read before damaging: a killing blow destroys the enemy.
                 Vector3 point = overlap.ClosestPointOnBounds(end);
+
+                if (enemy.Parry(point, source))
+                {
+                    onParried?.Invoke(enemy, point);
+                    continue;
+                }
 
                 float before = enemy.CurrentHealth;
                 // From the sweep's start: where the attack was coming from.

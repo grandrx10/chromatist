@@ -24,7 +24,7 @@ namespace LightAndShadow
     /// <see cref="trailInterval"/> seconds, each <see cref="trailSpacing"/>
     /// on from the last. The trail's heading turns toward wherever the cursor
     /// is now, at up to <see cref="trailTurnRate"/>, so it can be steered
-    /// while it grows. It stops after <see cref="trailCount"/>. The ability
+    /// while it grows. It stops after <see cref="TrailCount"/>. The ability
     /// counts as finished at once, so the next blade can be used straight
     /// away, but the scepter stays out, hovering over the player's head,
     /// until the trail is done.
@@ -84,9 +84,12 @@ namespace LightAndShadow
 
         [Header("Secondary: lotus trail")]
         [SerializeField]
-        [Tooltip("Lotuses in the trail.")]
+        [Tooltip("Lotuses in the trail at level 1. Each level past 1 adds 3 more.")]
         [Range(1, 128)]
         private int trailCount = 32;
+
+        /// <summary>Lotuses added to the trail for each level past 1.</summary>
+        private const int TrailCountPerLevel = 3;
 
         [SerializeField]
         [Tooltip("Seconds between one lotus in the trail and the next.")]
@@ -155,6 +158,27 @@ namespace LightAndShadow
         [Min(0.01f)]
         private float hoverEngageTime = 0.15f;
 
+        [Header("Haste")]
+        [SerializeField]
+        [Tooltip("Walking speed added, as a multiple of normal, each time a primary lotus hits or the player steps on a trail lotus.")]
+        [Range(0f, 1f)]
+        private float hasteStep = 0.1f;
+
+        [SerializeField]
+        [Tooltip("Most walking speed primary lotus hits can build up to, as a multiple of normal.")]
+        [Min(1f)]
+        private float primaryHasteMax = 1.5f;
+
+        [SerializeField]
+        [Tooltip("Most walking speed stepping on trail lotuses can build up to, as a multiple of normal.")]
+        [Min(1f)]
+        private float trailHasteMax = 2f;
+
+        [SerializeField]
+        [Tooltip("Seconds after the last stack that the haste wears off.")]
+        [Min(0f)]
+        private float hasteDuration = 2f;
+
         [Header("Kill")]
         [SerializeField]
         [Tooltip("Lotus petals flung out from an enemy Sage kills, by any of her attacks.")]
@@ -208,12 +232,53 @@ namespace LightAndShadow
         private float hoverBlend;
         private float hoverYaw;
 
+        // Haste state.
+        private float haste = 1f;
+        private float hasteRemaining;
+
         private float AttacksPerSecond => attacksPerSecond * AttackSpeedMultiplier;
+
+        /// <summary>What the primary lotus's size, step and burst radii are multiplied by for each level past 1.</summary>
+        private const float LotusGrowthPerLevel = 1.25f;
+
+        // The primary lotus at this scepter's level, kept so the lotuses it
+        // plants can be told apart from the trail's when they burst.
+        private SageLotus.Settings leveledLotus;
+        private int leveledLotusLevel;
+
+        /// <summary>The primary lotus at this level: <see cref="LotusGrowthPerLevel"/> times bigger per level past 1.</summary>
+        private SageLotus.Settings PrimaryLotus
+        {
+            get
+            {
+                if (leveledLotus == null || leveledLotusLevel != Level)
+                {
+                    float growth = PerLevel(LotusGrowthPerLevel);
+                    leveledLotus = LeveledCopy(lotus, l =>
+                    {
+                        l.size *= growth;
+                        l.stepRadius *= growth;
+                        l.burstRadius *= growth;
+                    });
+                    leveledLotusLevel = Level;
+                }
+
+                return leveledLotus;
+            }
+        }
 
         private bool Hovering => trailRunning || hoverRemaining > 0f;
 
         /// <summary>Hovering over the player until the trail is grown, so the arsenal holds off its fade out.</summary>
         public override bool Lingering => Hovering;
+
+        /// <summary>The set effect material, which may be empty. For Sage's boss fight, read off the prefab.</summary>
+        public Material EffectMaterial => effectMaterial;
+
+        /// <summary>The lotus model, empty for the built one.</summary>
+        public GameObject LotusModel => lotusModel;
+
+        public Color SageColour => sageColour;
 
         /// <summary>The effect material, or the scepter's own when none is set. Never copied or edited.</summary>
         private Material ResolvedEffectMaterial => effectMaterial != null ? effectMaterial : OwnMaterial;
@@ -267,6 +332,7 @@ namespace LightAndShadow
                                             Mathf.Max(0.0001f, aimFollowTime), Mathf.Infinity, deltaTime);
 
             TickTrail(deltaTime);
+            TickHaste(deltaTime);
 
             Vector3 position = orbitPosition;
             Quaternion rotation = orbitRotation;
@@ -360,7 +426,7 @@ namespace LightAndShadow
             }
 
             Vector3 floorPoint = new Vector3(ownerPosition.x + offset.x, Floor(), ownerPosition.z + offset.z);
-            SageLotus.Plant(floorPoint, lotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour, this);
+            SageLotus.Plant(floorPoint, PrimaryLotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour, this);
 
             flick = 1f;
         }
@@ -390,6 +456,10 @@ namespace LightAndShadow
 
         private void TickTrail(float deltaTime)
         {
+            // The trail grows on from where it has got to relative to a
+            // running player, so it keeps up with them.
+            trailHead += ChaseFrame.Step(deltaTime);
+
             if (trailRunning)
             {
                 trailClock += deltaTime;
@@ -414,6 +484,9 @@ namespace LightAndShadow
             hoverBlend = Mathf.MoveTowards(hoverBlend, Hovering ? 1f : 0f, deltaTime / hoverEngageTime);
         }
 
+        /// <summary>Lotuses in the trail at this scepter's level.</summary>
+        private int TrailCount => trailCount + TrailCountPerLevel * (Level - 1);
+
         private void PlantNext()
         {
             Steer();
@@ -424,7 +497,7 @@ namespace LightAndShadow
             SageLotus.Plant(trailHead, trailLotus, ResolvedEffectMaterial, lotusModel, Owner, sageColour, this);
             trailPlaced++;
 
-            if (trailPlaced >= trailCount)
+            if (trailPlaced >= TrailCount)
             {
                 trailRunning = false;
                 hoverRemaining = hoverLinger;
@@ -456,6 +529,73 @@ namespace LightAndShadow
             trailHeading.Normalize();
         }
 
+        // ---- haste --------------------------------------------------------
+
+        /// <summary>Told by each lotus this scepter planted as it bursts.</summary>
+        public void OnLotusBurst(SageLotus.Settings burst, bool byPlayer, bool hitEnemy)
+        {
+            if (!isActiveAndEnabled)
+            {
+                return;
+            }
+
+            // An upgraded scepter's trail hastes the player more; its
+            // primary lotuses grow instead, hasting no more than at level 1.
+            if (byPlayer && burst == trailLotus)
+            {
+                AddHaste(trailHasteMax * LevelScale, hasteStep * LevelScale);
+            }
+            else if (hitEnemy && (burst == lotus || burst == leveledLotus))
+            {
+                AddHaste(primaryHasteMax, hasteStep);
+            }
+        }
+
+        /// <summary>
+        /// One more stack, up to <paramref name="max"/>. Already at or past it
+        /// -- built higher by the other source -- only refreshes the timer.
+        /// </summary>
+        private void AddHaste(float max, float step)
+        {
+            if (haste < max)
+            {
+                haste = Mathf.Min(max, haste + step);
+            }
+
+            hasteRemaining = hasteDuration;
+
+            if (Motor != null)
+            {
+                Motor.SetSpeedModifier(this, haste);
+            }
+        }
+
+        private void TickHaste(float deltaTime)
+        {
+            if (hasteRemaining <= 0f)
+            {
+                return;
+            }
+
+            hasteRemaining -= deltaTime;
+
+            if (hasteRemaining <= 0f)
+            {
+                ClearHaste();
+            }
+        }
+
+        private void ClearHaste()
+        {
+            haste = 1f;
+            hasteRemaining = 0f;
+
+            if (Motor != null)
+            {
+                Motor.RemoveSpeedModifier(this);
+            }
+        }
+
         // ---- lifecycle ----------------------------------------------------
 
         protected override void OnSnap()
@@ -472,6 +612,7 @@ namespace LightAndShadow
             trailRunning = false;
             hoverRemaining = 0f;
             hoverBlend = 0f;
+            ClearHaste();
         }
     }
 }

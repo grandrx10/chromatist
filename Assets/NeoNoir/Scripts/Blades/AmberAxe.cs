@@ -24,7 +24,8 @@ namespace LightAndShadow
     /// speed, steering after them every frame, and flies through walls on
     /// the way back so it can never be lost. It cannot be thrown again until
     /// it is caught, so the nearer the target, the more often it hits.
-    /// Enemies never stop it. It hits each enemy at most once going out and
+    /// Enemies never stop it, but a guard that parries it on the way out,
+    /// such as a <see cref="KatanaGuard"/>, turns it straight back. It hits each enemy at most once going out and
     /// once coming back. Attack speed buffs only make it fly faster.
     ///
     /// Secondary. The axe rises over the player's head and draws back for
@@ -258,6 +259,21 @@ namespace LightAndShadow
 
         private float Speed => throwSpeed * AttackSpeedMultiplier;
 
+        /// <summary>Each level makes the throw 1.2 times as fast.</summary>
+        protected override float AttackSpeedPerLevel => 1.2f;
+
+        /// <summary>What the throw's damage is multiplied by for each level past 1.</summary>
+        private const float ThrowDamagePerLevel = 1.3f;
+
+        /// <summary>What the slam's damage is multiplied by for each level past 1.</summary>
+        private const float SlamDamagePerLevel = 1.4f;
+
+        /// <summary>
+        /// Damage taken while charging at this level: the resistance (1 minus
+        /// the setting) times the level's scale, so 50% resisted becomes 55%.
+        /// </summary>
+        private float ChargeDamageTaken => Mathf.Clamp01(1f - (1f - chargeDamageTaken) * LevelScale);
+
         /// <summary>Raised, slamming or planted: the arsenal must not fade the axe out from under the slam.</summary>
         public override bool Lingering => slamPhase != SlamPhase.None;
 
@@ -371,6 +387,11 @@ namespace LightAndShadow
             float step = Speed * deltaTime;
             Vector3 from = flightPosition;
 
+            // Its whole flight, target and all, keeps up with a running player.
+            Vector3 carry = ChaseFrame.Step(deltaTime);
+            flightPosition += carry;
+            outTarget += carry;
+
             if (flight == Flight.Outbound)
             {
                 Vector3 toTarget = outTarget - flightPosition;
@@ -445,7 +466,17 @@ namespace LightAndShadow
                 direction = heading;
             }
 
-            BladeDamage.Sweep(from, to, hitRadius, damage, direction, hitThisPass, slashTint: amberColour);
+            BladeDamage.Sweep(from, to, hitRadius, damage * PerLevel(ThrowDamagePerLevel), direction, hitThisPass, slashTint: amberColour,
+                              onParried: OnParried);
+        }
+
+        /// <summary>Knocked aside on the way out: it turns straight back for the player from there.</summary>
+        private void OnParried(EnemyHealth enemy, Vector3 point)
+        {
+            if (flight == Flight.Outbound)
+            {
+                TurnBack();
+            }
         }
 
         /// <summary>
@@ -579,7 +610,7 @@ namespace LightAndShadow
             Vector3 feet = new Vector3(ownerPosition.x, floor, ownerPosition.z);
 
             AmberSlam.Create(feet, slamAim, OwnerMiddleHeight(), OwnerMiddleHeight() + gripHeight - floor,
-                             -windup.y, slamEndAngle, slam, ResolvedEffectMaterial);
+                             -windup.y, slamEndAngle, LeveledCopy(slam, s => s.damage *= PerLevel(SlamDamagePerLevel)), ResolvedEffectMaterial);
         }
 
         /// <summary>
@@ -860,7 +891,7 @@ namespace LightAndShadow
             {
                 if (on)
                 {
-                    Health.SetDamageTakenModifier(this, chargeDamageTaken);
+                    Health.SetDamageTakenModifier(this, ChargeDamageTaken);
                 }
                 else
                 {

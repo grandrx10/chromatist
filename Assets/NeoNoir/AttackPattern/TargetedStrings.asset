@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1c7a1a3303127040ac4ff635f0de735, type: 3}
+  m_Name: TargetedStrings
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.TargetedStringsPattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  duration: 4
+  interval: 1
+  volley:
+    tracking: 1
+    spawnDistance: {x: 5, y: 10}
+    radius: 2
+    fillTime: 2
+    acceleration: 16
+    maxSpeed: 15
+    drag: 0.5
+    circleMaterial: {fileID: 0}
+    circleColour: {r: 1, g: 0.12, b: 0.12, a: 0.7}
+    circleOutline: 0.1
+    circleLift: 0.1
+    count: 8
+    stagger: 0.03
+    flightTime: 0.12
+    elevation: {x: 50, y: 75}
+    length: 30
+    stringMaterial: {fileID: 0}
+    coreColour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    edgeColour: {r: 2.5, g: 2.5, b: 2.5, a: 1}
+    coreWidth: 0.05
+    width: 0.11
+    lingerTime: 3
+    lingerFade: 0.6
+    latchTime: 0.12
+    recoilTime: 0.6
+    recoilWobble: 0.8
+    recoilLength: 12
+    recoilSegments: 16
+    impact:
+      ringRadius: 0.7
+      ringWidth: 0.15
+      ringTime: 0.25
+      floorOffset: 0.1
+      ringIntensity: 3
+      debrisCount: 2
+      debrisSize: 0.15
+      debrisUpSpeed: {x: 3, y: 5}
+      debrisOutSpeed: {x: 1, y: 3}
+      debrisGravity: 25
+      debrisTime: 0.4
+      debrisIntensity: 1.5
+    impactMaterial: {fileID: 0}
+    impactBurst:
+      flashSize: 0.45
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 6}
+      sparkLife: 0.2
+      colour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    impactShake: 0.15
+    impactShakeTime: 0.2
+    damage: 15

@@ -10,10 +10,17 @@ namespace LightAndShadow
     /// from 0 to 1.
     /// </summary>
     /// <remarks>
-    /// Builds its own mesh, so it needs no prefab. Coloured through a
+    /// Builds its own meshes, so it needs no prefab. Coloured through a
     /// property block, never by editing the material. Whoever creates it
     /// destroys it; <see cref="DestroyWhen"/> covers an owner that might stop
     /// before getting the chance, such as an attack cut short by a death.
+    ///
+    /// Cheap enough for hundreds at once: the outline mesh is built once per
+    /// size and shared by every circle that size, and the disc is one unit
+    /// disc shared by all, scaled as it fills, so nothing is rebuilt from
+    /// frame to frame. Circles given no material share one, too. A circle
+    /// handed back with <see cref="Release"/> rather than destroyed is reused
+    /// by the next <see cref="Create"/>, for attacks that lay many a second.
     /// </remarks>
     public sealed class WarningCircle : MonoBehaviour
     {
@@ -21,16 +28,25 @@ namespace LightAndShadow
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-        private readonly List<Vector3> vertices = new List<Vector3>();
-        private readonly List<int> triangles = new List<int>();
+        // Shared by every circle: outlines by size, the unit disc, and the
+        // material for circles given none.
+        private static readonly Dictionary<Vector2Int, Mesh> outlines = new Dictionary<Vector2Int, Mesh>();
+        private static Mesh unitDisc;
+        private static Material defaultMaterial;
+
+        // Released circles waiting to be reused.
+        private static readonly Stack<WarningCircle> spare = new Stack<WarningCircle>();
+        private static MaterialPropertyBlock block;
 
         private float radius;
         private float outlineWidth;
         private float fill = -1f;
         private Func<bool> expired;
 
-        private Mesh mesh;
-        private Material ownMaterial;
+        private Transform disc;
+        private MeshRenderer discRenderer;
+        private MeshFilter outlineFilter;
+        private MeshRenderer outlineRenderer;
 
         /// <summary>How far the disc has filled the circle, 0 to 1.</summary>
         public float Fill
@@ -50,18 +66,38 @@ namespace LightAndShadow
 
         /// <summary>
         /// Draws an empty circle at <paramref name="position"/>, flat on the
-        /// floor. A null <paramref name="material"/> makes a NeoNoir/Flat one.
+        /// floor. A null <paramref name="material"/> uses a shared NeoNoir/Flat one.
         /// </summary>
         public static WarningCircle Create(Vector3 position, float radius, float outlineWidth,
                                            Material material, Color colour, Transform parent = null)
         {
-            GameObject host = new GameObject("WarningCircle");
-            host.transform.SetParent(parent, false);
-            host.transform.position = position;
+            WarningCircle circle = null;
 
-            WarningCircle circle = host.AddComponent<WarningCircle>();
+            // Released circles in a scene that has since unloaded went with it.
+            while (circle == null && spare.Count > 0)
+            {
+                circle = spare.Pop();
+            }
+
+            if (circle == null)
+            {
+                circle = new GameObject("WarningCircle").AddComponent<WarningCircle>();
+            }
+
+            circle.transform.SetParent(parent, false);
+            circle.transform.position = position;
+            circle.gameObject.SetActive(true);
             circle.Begin(radius, outlineWidth, material, colour);
             return circle;
+        }
+
+        /// <summary>Done with: hidden and kept for the next <see cref="Create"/>, rather than destroyed.</summary>
+        public void Release()
+        {
+            expired = null;
+            gameObject.SetActive(false);
+            transform.SetParent(null, false);
+            spare.Push(this);
         }
 
         /// <summary>Destroys the circle by itself the first frame <paramref name="condition"/> is true.</summary>
@@ -75,33 +111,44 @@ namespace LightAndShadow
             radius = circleRadius;
             outlineWidth = circleOutline;
 
-            mesh = new Mesh { name = "Warning circle" };
-            mesh.MarkDynamic();
-            gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-
-            MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-
             if (material == null)
             {
-                Shader flat = Shader.Find("NeoNoir/Flat");
-
-                if (flat != null)
-                {
-                    ownMaterial = new Material(flat);
-                    material = ownMaterial;
-                }
+                material = DefaultMaterial();
             }
 
-            renderer.sharedMaterial = material;
+            // Built once; a reused circle only takes its new size and colour.
+            if (outlineRenderer == null)
+            {
+                outlineRenderer = Paint(gameObject, out outlineFilter);
 
-            MaterialPropertyBlock block = new MaterialPropertyBlock();
-            renderer.GetPropertyBlock(block);
+                GameObject discHost = new GameObject("Disc");
+                disc = discHost.transform;
+                disc.SetParent(transform, false);
+                discRenderer = Paint(discHost, out MeshFilter discFilter);
+                discFilter.sharedMesh = UnitDisc();
+            }
+
+            block ??= new MaterialPropertyBlock();
             block.SetColor(BaseColorId, colour);
-            renderer.SetPropertyBlock(block);
 
+            outlineFilter.sharedMesh = Outline(radius, outlineWidth);
+            outlineRenderer.sharedMaterial = material;
+            outlineRenderer.SetPropertyBlock(block);
+            discRenderer.sharedMaterial = material;
+            discRenderer.SetPropertyBlock(block);
+
+            fill = -1f;
             Fill = 0f;
+        }
+
+        private static MeshRenderer Paint(GameObject host, out MeshFilter filter)
+        {
+            filter = host.AddComponent<MeshFilter>();
+
+            MeshRenderer renderer = host.AddComponent<MeshRenderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
         }
 
         private void Update()
@@ -114,33 +161,64 @@ namespace LightAndShadow
 
         private void Draw()
         {
-            vertices.Clear();
-            triangles.Clear();
-
-            AddRing(Mathf.Max(0f, radius - outlineWidth), radius);
-
             // Inside the outline, so the two never overlap and flicker.
-            float disc = Mathf.Max(0f, radius - outlineWidth) * fill;
+            float size = Mathf.Max(0f, radius - outlineWidth) * fill;
+            bool shown = size > 0.0001f;
 
-            if (disc > 0.0001f)
+            discRenderer.enabled = shown;
+
+            if (shown)
             {
-                AddRing(0f, disc);
+                disc.localScale = new Vector3(size, 1f, size);
             }
-
-            mesh.Clear();
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateBounds();
         }
 
-        private void AddRing(float inner, float outer)
+        // ---- shared meshes --------------------------------------------------
+
+        private static Material DefaultMaterial()
         {
-            if (outer - inner <= 0f)
+            if (defaultMaterial == null)
             {
-                return;
+                Shader flat = Shader.Find("NeoNoir/Flat");
+
+                if (flat != null)
+                {
+                    defaultMaterial = new Material(flat) { name = "Runtime Warning Circle" };
+                }
             }
 
-            int first = vertices.Count;
+            return defaultMaterial;
+        }
+
+        /// <summary>The outline for a circle this size, built the first time a circle that size is wanted.</summary>
+        private static Mesh Outline(float circleRadius, float circleOutline)
+        {
+            // To the millimetre: near enough the same size is the same mesh.
+            Vector2Int key = new Vector2Int(Mathf.RoundToInt(circleRadius * 1000f), Mathf.RoundToInt(circleOutline * 1000f));
+
+            if (!outlines.TryGetValue(key, out Mesh mesh) || mesh == null)
+            {
+                mesh = Ring(Mathf.Max(0f, circleRadius - circleOutline), circleRadius, "Warning circle outline");
+                outlines[key] = mesh;
+            }
+
+            return mesh;
+        }
+
+        private static Mesh UnitDisc()
+        {
+            if (unitDisc == null)
+            {
+                unitDisc = Ring(0f, 1f, "Warning circle disc");
+            }
+
+            return unitDisc;
+        }
+
+        private static Mesh Ring(float inner, float outer, string meshName)
+        {
+            List<Vector3> vertices = new List<Vector3>((Segments + 1) * 2);
+            List<int> triangles = new List<int>(Segments * 12);
 
             for (int i = 0; i <= Segments; i++)
             {
@@ -153,22 +231,20 @@ namespace LightAndShadow
 
             for (int i = 0; i < Segments; i++)
             {
-                int at = first + i * 2;
+                int at = i * 2;
 
                 // Wound both ways, so it shows from either side.
-                triangles.AddRange(new[] { at, at + 2, at + 1, at + 1, at + 2, at + 3 });
-                triangles.AddRange(new[] { at, at + 1, at + 2, at + 1, at + 3, at + 2 });
+                triangles.Add(at); triangles.Add(at + 2); triangles.Add(at + 1);
+                triangles.Add(at + 1); triangles.Add(at + 2); triangles.Add(at + 3);
+                triangles.Add(at); triangles.Add(at + 1); triangles.Add(at + 2);
+                triangles.Add(at + 1); triangles.Add(at + 3); triangles.Add(at + 2);
             }
-        }
 
-        private void OnDestroy()
-        {
-            Destroy(mesh);
-
-            if (ownMaterial != null)
-            {
-                Destroy(ownMaterial);
-            }
+            Mesh mesh = new Mesh { name = meshName };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
     }
 }

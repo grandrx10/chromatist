@@ -18,13 +18,13 @@ namespace LightAndShadow
     /// straight line of flight, so a note never dodges what it was aimed at.
     ///
     /// No slash effect on a hit. The note pops and the banjo is told, through
-    /// the callback, so it can mark the enemy.
+    /// the callback, so it can mark the enemy, or count the kill.
     ///
     /// Notes are modelled flat, so by default they turn to face the camera,
     /// like a sprite. <see cref="Settings.modelRotation"/> corrects a model
     /// that was not built facing -Z.
     /// </remarks>
-    public sealed class SoundNote : MonoBehaviour
+    public sealed class SoundNote : MonoBehaviour, IParryableProjectile
     {
         [Serializable]
         public sealed class Settings
@@ -71,18 +71,20 @@ namespace LightAndShadow
 
         private Vector3 position;
         private Vector3 direction;
+        private Vector3 carried;
         private Vector3 baseScale;
         private float travelled;
         private float age;
         private float phase;
 
         private bool stopped;
+        private bool held;
         private float popClock;
 
         /// <summary>
         /// Fires the note from <paramref name="origin"/> along
         /// <paramref name="flightDirection"/>. <paramref name="hit"/> is called
-        /// after the note has dealt its damage to an enemy that survived it.
+        /// after the note has dealt its damage to an enemy, even one it killed.
         /// <paramref name="shooter"/> is the blade that played it, told if it
         /// kills.
         /// </summary>
@@ -96,6 +98,10 @@ namespace LightAndShadow
 
             position = origin;
             direction = flightDirection.normalized;
+            PlayerProjectiles.Add(this);
+
+            // Keeps the speed of a player playing it mid-run.
+            carried = ChaseFrame.Velocity;
             baseScale = transform.localScale * settings.scale;
             phase = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
 
@@ -137,6 +143,14 @@ namespace LightAndShadow
                 return;
             }
 
+            position += carried * deltaTime;
+
+            if (held)
+            {
+                Pose();
+                return;
+            }
+
             float step = Mathf.Min(settings.speed * deltaTime, settings.range - travelled);
 
             if (step <= 0f)
@@ -165,11 +179,32 @@ namespace LightAndShadow
             Pose();
         }
 
+        public Vector3 Position => position;
+
+        public void Hold()
+        {
+            held = true;
+        }
+
+        public void Deflect()
+        {
+            if (!stopped)
+            {
+                Stop();
+            }
+        }
+
         private void Stop()
         {
+            PlayerProjectiles.Remove(this);
             stopped = true;
             popClock = 0f;
             Pose();
+        }
+
+        private void OnDestroy()
+        {
+            PlayerProjectiles.Remove(this);
         }
 
         /// <summary>
@@ -250,13 +285,15 @@ namespace LightAndShadow
             // A sweep that starts already overlapping reports no point.
             Vector3 point = hit.distance > 0f ? hit.point : position;
 
+            if (enemy.Parry(point, source))
+            {
+                return;
+            }
+
             enemy.TakeDamage(settings.damage, source, position);
 
-            // Damage first: a killing note has nothing left to mark.
-            if (!enemy.IsDead)
-            {
-                onHit?.Invoke(enemy, point);
-            }
+            // Damage first, so whoever hears of the hit can tell whether it killed.
+            onHit?.Invoke(enemy, point);
         }
     }
 }

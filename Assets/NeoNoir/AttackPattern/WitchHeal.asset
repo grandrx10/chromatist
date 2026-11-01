@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1970ff3070016e0439692c6576e8cf7d, type: 3}
   m_Name: WitchHeal
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.WitchHealPattern
-  delayAfter: 5
+  delayAfter: 1
   attackAnimation: WitchHeal
   movement:
     type: 0

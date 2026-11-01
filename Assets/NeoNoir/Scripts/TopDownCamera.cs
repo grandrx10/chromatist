@@ -82,6 +82,13 @@ namespace LightAndShadow
         [Min(0.1f)]
         private float shakeFrequency = 25f;
 
+        [Header("Sky")]
+        [SerializeField]
+        [Tooltip("In play, clears to plain Sky Colour instead of the skybox, wherever the view sees past the level -- such as when it turns to face a wall. The lighting is left alone.")]
+        private bool plainSky = true;
+
+        [SerializeField] private Color skyColour = Color.black;
+
         [Header("Occlusion")]
         [SerializeField] private OccluderFader occlusion = new OccluderFader();
 
@@ -90,6 +97,29 @@ namespace LightAndShadow
         private static float shakeStrength;
         private static float shakeDuration;
         private static float shakeStartTime;
+
+        // Likewise shared: the latest turn asked for, picked up by each
+        // camera once, by its number.
+        private static int turnRequest;
+        private static Vector3 turnPoint;
+        private static float turnDuration;
+
+        // A pose a cutscene holds every camera at, and the latest release from
+        // it, picked up by each camera once, by its number.
+        private static bool held;
+        private static Vector3 heldPosition;
+        private static Quaternion heldRotation;
+        private static int releaseRequest;
+        private static float releaseYaw;
+
+        // The camera most recently switched on, for Framing.
+        private static TopDownCamera main;
+
+        private int releaseHandled;
+        private int turnHandled;
+        private bool turning;
+        private float turnFromYaw;
+        private float turnClock;
 
         private Vector3 followPosition;
         private Vector3 followVelocity;
@@ -128,6 +158,70 @@ namespace LightAndShadow
             shakeStartTime = Time.time;
         }
 
+        /// <summary>
+        /// Swings the camera's yaw, over <paramref name="duration"/> seconds,
+        /// until the view looks from the player toward <paramref name="point"/>.
+        /// The pitch and distance stay as they are. Q and E are ignored until
+        /// the turn is done.
+        /// </summary>
+        public static void TurnToward(Vector3 point, float duration)
+        {
+            turnRequest++;
+            turnPoint = point;
+            turnDuration = Mathf.Max(0f, duration);
+        }
+
+        /// <summary>
+        /// Shifts what the camera frames away from the player, in world space:
+        /// for a forced run, say, to show more behind them. Zero is normal.
+        /// </summary>
+        public static Vector3 FocusShift { get; set; }
+
+        /// <summary>
+        /// Holds every camera at <paramref name="position"/> and
+        /// <paramref name="rotation"/>, shakes aside, until
+        /// <see cref="Release"/>. Call it every frame to move the view.
+        /// </summary>
+        public static void Hold(Vector3 position, Quaternion rotation)
+        {
+            held = true;
+            heldPosition = position;
+            heldRotation = rotation;
+        }
+
+        /// <summary>
+        /// Ends a <see cref="Hold"/>: the camera turns to
+        /// <paramref name="yaw"/> and snaps straight to framing the player,
+        /// with no smoothing, so the cut is clean when the held pose was
+        /// <see cref="Framing"/>'s.
+        /// </summary>
+        public static void Release(float yaw)
+        {
+            held = false;
+            releaseRequest++;
+            releaseYaw = yaw;
+        }
+
+        /// <summary>
+        /// Where the camera would sit, settled, framing a player at
+        /// <paramref name="targetPosition"/> with the view turned to
+        /// <paramref name="yaw"/>, taking in the <see cref="FocusShift"/>.
+        /// False with no camera in the scene.
+        /// </summary>
+        public static bool Framing(Vector3 targetPosition, float yaw, out Vector3 position, out Quaternion rotation)
+        {
+            if (main == null)
+            {
+                position = targetPosition;
+                rotation = Quaternion.identity;
+                return false;
+            }
+
+            rotation = Quaternion.Euler(main.pitch, yaw, 0f);
+            position = targetPosition + main.targetOffset + FocusShift - rotation * Vector3.forward * main.distance;
+            return true;
+        }
+
         /// <summary>How far a shake can move the camera right now: its strength, eased down to nothing.</summary>
         private static float CurrentShake()
         {
@@ -142,6 +236,21 @@ namespace LightAndShadow
 
         private void OnEnable()
         {
+            // A turn asked for before this camera existed is not its business.
+            turnHandled = turnRequest;
+            turning = false;
+            releaseHandled = releaseRequest;
+            main = this;
+
+            // Play only: in edit mode this would change the scene's camera
+            // without marking it changed.
+            if (plainSky && Application.isPlaying)
+            {
+                Camera view = GetComponent<Camera>();
+                view.clearFlags = CameraClearFlags.SolidColor;
+                view.backgroundColor = skyColour;
+            }
+
             AcquireTarget();
             SnapToTarget();
         }
@@ -173,7 +282,24 @@ namespace LightAndShadow
                 return;
             }
 
-            ReadRotationInput(Time.deltaTime);
+            if (releaseHandled != releaseRequest)
+            {
+                releaseHandled = releaseRequest;
+                yaw = Mathf.Repeat(releaseYaw, 360f);
+                turning = false;
+                SnapToTarget();
+            }
+
+            if (held)
+            {
+                transform.SetPositionAndRotation(heldPosition + ShakeOffset(heldRotation), heldRotation);
+                return;
+            }
+
+            if (!UpdateTurn(Time.deltaTime))
+            {
+                ReadRotationInput(Time.deltaTime);
+            }
 
             Vector3 focus = ResolveFocus(Time.deltaTime);
             Quaternion rotation = ResolveRotation();
@@ -240,8 +366,9 @@ namespace LightAndShadow
 
             // E is also interact. Hold the view while an interact prompt is
             // up, and while the player's controls are locked by dialogue or an
-            // acquire effect, so pressing E to talk never swings the camera.
-            if (DialogueBox.IsEngaged || (targetInput != null && targetInput.Locked))
+            // acquire effect or a forced run, so pressing E to talk never
+            // swings the camera.
+            if (DialogueBox.IsEngaged || ChaseFrame.Active || (targetInput != null && (targetInput.Locked || targetInput.MoveOnly)))
             {
                 return;
             }
@@ -271,6 +398,50 @@ namespace LightAndShadow
             yaw = Mathf.Repeat(yaw + Mathf.Clamp(direction, -1f, 1f) * rotationSpeed * deltaTime, 360f);
         }
 
+        /// <summary>
+        /// Moves the yaw along the current <see cref="TurnToward"/>, if any.
+        /// Returns true while a turn is under way.
+        /// </summary>
+        private bool UpdateTurn(float deltaTime)
+        {
+            if (turnHandled != turnRequest)
+            {
+                turnHandled = turnRequest;
+                turning = true;
+                turnFromYaw = yaw;
+                turnClock = 0f;
+            }
+
+            if (!turning)
+            {
+                return false;
+            }
+
+            // Re-aimed every frame from where the player stands now.
+            Vector3 toward = turnPoint - target.position;
+            toward.y = 0f;
+
+            if (toward.sqrMagnitude < 0.0001f)
+            {
+                turning = false;
+                return false;
+            }
+
+            float goalYaw = Mathf.Atan2(toward.x, toward.z) * Mathf.Rad2Deg;
+
+            turnClock += deltaTime;
+            float t = turnDuration > 0f ? Mathf.Clamp01(turnClock / turnDuration) : 1f;
+
+            yaw = Mathf.Repeat(Mathf.LerpAngle(turnFromYaw, goalYaw, Mathf.SmoothStep(0f, 1f, t)), 360f);
+
+            if (t >= 1f)
+            {
+                turning = false;
+            }
+
+            return true;
+        }
+
         /// <summary>Sideways and up-down jolt across the screen for the current shake.</summary>
         private Vector3 ShakeOffset(Quaternion rotation)
         {
@@ -295,7 +466,7 @@ namespace LightAndShadow
 
         private Vector3 ResolveFocus(float deltaTime)
         {
-            Vector3 focus = target.position + targetOffset;
+            Vector3 focus = target.position + targetOffset + FocusShift;
 
             if (lookAheadDistance <= 0f)
             {
@@ -325,7 +496,7 @@ namespace LightAndShadow
             }
 
             Quaternion rotation = ResolveRotation();
-            Vector3 focus = target.position + targetOffset;
+            Vector3 focus = target.position + targetOffset + FocusShift;
 
             followPosition = focus - rotation * Vector3.forward * distance;
             transform.SetPositionAndRotation(followPosition, rotation);
@@ -333,6 +504,14 @@ namespace LightAndShadow
             followVelocity = Vector3.zero;
             lookAhead = Vector3.zero;
             lookAheadVelocity = Vector3.zero;
+        }
+
+        // Static state survives leaving play mode when domain reload is off.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnLoad()
+        {
+            held = false;
+            FocusShift = Vector3.zero;
         }
 
         private void OnValidate()

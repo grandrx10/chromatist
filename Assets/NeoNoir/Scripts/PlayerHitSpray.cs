@@ -202,7 +202,8 @@ namespace LightAndShadow
                     Fleck fleck = flecks[i];
                     fleck.velocity.y -= settings.gravity * deltaTime;
 
-                    Vector3 position = fleck.transform.position + fleck.velocity * deltaTime;
+                    // Carried along with a forced run, keeping up with the player.
+                    Vector3 position = fleck.transform.position + fleck.velocity * deltaTime + ChaseFrame.Step(deltaTime);
                     float rest = floor + scale * 0.5f;
 
                     if (position.y < rest)

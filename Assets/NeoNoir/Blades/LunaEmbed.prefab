@@ -76,14 +76,57 @@ MonoBehaviour:
   interactRadius: 2.5
   promptText: E  Interact
   promptOffset: {x: 0, y: 0.3, z: 0}
-  dialogue: []
-  acquireLabel: Acquire
-  leaveLabel: Leave
-  afterAcquire:
-  - speaker: Luna
-    text: At your service, liege.
-    charactersPerSecond: 10
-  afterLeave: []
+  stats:
+  - speaker: ???
+    text: You need me.
+  activateQuestion:
+    speaker: 
+    text: Acquire?
+  upgradeQuestion:
+    speaker: 
+    text: Upgrade?
+  yesLabel: Yes
+  noLabel: No
+  notEnoughChroma:
+    speaker: 
+    text: Not enough chroma.
+  levels:
+  - cost: 1
+    dialogue:
+    - speaker: Luna
+      text: You cannot rest yet, my dear chromatist.
+    - speaker: Luna
+      text: There is still work to be done.
+    - speaker: Luna
+      text: Remember the one who took everything from you.
+    - speaker: Luna
+      text: Remember their face.
+    - speaker: Luna
+      text: Take me into your hands and I can help you achieve what you so desire.
+    - speaker: Luna
+      text: Revenge.
+  - cost: 1
+    dialogue:
+    - speaker: Luna
+      text: They hurt you didnt they, my dear chromatist?
+    - speaker: Luna
+      text: They hurt me too.
+    - speaker: Luna
+      text: That is why we push forward, no?
+    - speaker: Luna
+      text: 'To do as they have done unto us. '
+    - speaker: Luna
+      text: Go, take me with you. We will have our revenge.
+  - cost: 1
+    dialogue:
+    - speaker: Luna
+      text: Dont worry, my dear chromatist.
+    - speaker: Luna
+      text: Do not worry.
+    - speaker: Luna
+      text: No matter how many times you fall, I will ALWAYS pick you up.
+    - speaker: Luna
+      text: A L W A Y S.
   acquiredStoneColour: {r: 1, g: 1, b: 1, a: 1}
   stoneDelay: 0
   stoneChangeTime: 0.6
@@ -92,6 +135,29 @@ MonoBehaviour:
   acquired:
     m_PersistentCalls:
       m_Calls: []
+  upgradeEffect:
+    colour: {r: 5, g: 5, b: 5, a: 1}
+    ringRadius: {x: 0.4, y: 3.5}
+    ringWidth: 0.35
+    ringTime: 0.7
+    streakCount: 16
+    streakRadius: 0.7
+    streakRise: {x: 2.5, y: 5}
+    streakSwirl: 240
+    streakSize: 0.5
+    streakSpread: 0.35
+    streakLife: 0.7
+    flash:
+      flashSize: 1.6
+      flashTime: 0.3
+      sparkCount: 20
+      sparkSize: 0.35
+      sparkSpeed: {x: 4, y: 9}
+      sparkLife: 0.45
+      colour: {r: 5, g: 5, b: 5, a: 1}
+  upgradeFlare: 3
+  upgradeFlareTime: 0.8
+  upgradeHold: 1
 --- !u!1 &2447263205225981525
 GameObject:
   m_ObjectHideFlags: 0

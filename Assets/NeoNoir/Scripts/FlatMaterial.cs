@@ -19,6 +19,7 @@ namespace LightAndShadow
 
         private static Material shared;
         private static Material doubleSided;
+        private static Material inverted;
 
         /// <summary>The plain material, culling back faces as usual.</summary>
         public static Material Shared
@@ -53,6 +54,29 @@ namespace LightAndShadow
                 }
 
                 return doubleSided;
+            }
+        }
+
+        /// <summary>
+        /// Draws only back faces. For outline shells: a copy of a shape a
+        /// little bigger, drawn inside out behind it, shows only as a rim
+        /// round its edge.
+        /// </summary>
+        public static Material Inverted
+        {
+            get
+            {
+                if (inverted == null)
+                {
+                    inverted = Make("Runtime Flat (inverted)");
+
+                    if (inverted != null && inverted.HasProperty(CullId))
+                    {
+                        inverted.SetFloat(CullId, 1f);
+                    }
+                }
+
+                return inverted;
             }
         }
 

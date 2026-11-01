@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f047c5a485dcd4f91363f0d29ad0f5, type: 3}
+  m_Name: PuppetTornado
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.PuppetTornadoPattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  glideSpeed: 14
+  maxGlideTime: 4
+  spinSpeed: 1440
+  spinUpTime: 0.6
+  holdTime: 2
+  throwWhileHolding: 1
+  windDownTime: 0.8
+  spinAnimation: 
+  tornado:
+    streaks: 8
+    baseRadius: 0.8
+    topRadius: 2
+    height: 3.5
+    turnRate: 2.5
+    climbSpeed: 1.5
+    width: 0.08
+    tailTime: 0.12
+    colour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+    dustRate: 18
+    dustSpeed: 4
+    dust:
+      spacing: 0.4
+      puffsPerStep: 2
+      minSpeed: 3
+      size: 0.4
+      lifetime: 0.5
+      rise: 1
+      drag: 0.15
+      spread: 1.2
+      colour: {r: 1, g: 1, b: 1, a: 1}
+      material: {fileID: 0}
+  duration: 4
+  startRadius: 0.75
+  endRadius: 12
+  orbitSpeed: 20
+  spiralStartSpeed: 8
+  finalLaps: 1
+  lapSpeed: 20
+  daggerPrefab: {fileID: -929208108828705068, guid: 4e64bba88970d004589fa0f45e41c350, type: 3}
+  daggersPerSecond: 20
+  daggerHeight: 0.5
+  daggerSpawnDistance: 0.8

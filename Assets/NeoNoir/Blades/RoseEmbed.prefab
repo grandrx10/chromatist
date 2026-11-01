@@ -167,15 +167,22 @@ MonoBehaviour:
   interactRadius: 2.5
   promptText: E  Interact
   promptOffset: {x: 0, y: 0.3, z: 0}
-  dialogue: []
-  acquireLabel: Acquire
-  leaveLabel: Leave
-  afterAcquire:
-  - speaker: Rose
-    text: At your service, liege.
-    charactersPerSecond: 10
-  afterLeave: []
-  acquiredStoneColour: {r: 0.8113208, g: 0, b: 0.19668016, a: 1}
+  stats: []
+  activateQuestion:
+    speaker: 
+    text: Activate?
+  upgradeQuestion:
+    speaker: 
+    text: Upgrade?
+  yesLabel: Yes
+  noLabel: No
+  notEnoughChroma:
+    speaker: 
+    text: Not enough chroma.
+  levels:
+  - cost: 1
+    dialogue: []
+  acquiredStoneColour: {r: 0.6981132, g: 0.25685287, b: 0.3634374, a: 1}
   stoneDelay: 0
   stoneChangeTime: 0.6
   bladeGlow: 3
@@ -183,6 +190,29 @@ MonoBehaviour:
   acquired:
     m_PersistentCalls:
       m_Calls: []
+  upgradeEffect:
+    colour: {r: 5, g: 5, b: 5, a: 1}
+    ringRadius: {x: 0.4, y: 3.5}
+    ringWidth: 0.35
+    ringTime: 0.7
+    streakCount: 16
+    streakRadius: 0.7
+    streakRise: {x: 2.5, y: 5}
+    streakSwirl: 240
+    streakSize: 0.5
+    streakSpread: 0.35
+    streakLife: 0.7
+    flash:
+      flashSize: 1.6
+      flashTime: 0.3
+      sparkCount: 20
+      sparkSize: 0.35
+      sparkSpeed: {x: 4, y: 9}
+      sparkLife: 0.45
+      colour: {r: 5, g: 5, b: 5, a: 1}
+  upgradeFlare: 3
+  upgradeFlareTime: 0.8
+  upgradeHold: 1
 --- !u!1 &2985137672610344302
 GameObject:
   m_ObjectHideFlags: 0

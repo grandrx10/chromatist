@@ -20,7 +20,8 @@ namespace LightAndShadow
     ///
     /// Bloodlust: the lower the player's health, the faster the swipes come,
     /// rising linearly from the base rate at full health to
-    /// <see cref="lowHealthAttackSpeed"/> times it at zero.
+    /// <see cref="lowHealthAttackSpeed"/> times it at zero. The swipes thicken
+    /// the same way, up to <see cref="lowHealthThickness"/> times as wide.
     ///
     /// Secondary. A huge claw tear is raked across the cursor, at any
     /// distance. The scythe reaps round the player at the same moment, but
@@ -39,6 +40,11 @@ namespace LightAndShadow
         [Tooltip("Attack speed multiplier as health approaches zero. Rises linearly from 1 at full health.")]
         [Range(1f, 4f)]
         private float lowHealthAttackSpeed = 2f;
+
+        [SerializeField]
+        [Tooltip("Swipe thickness multiplier as health approaches zero. Rises linearly from 1 at full health.")]
+        [Range(1f, 4f)]
+        private float lowHealthThickness = 2f;
 
         [SerializeField]
         [Tooltip("Furthest from the player a swipe can be centred. A cursor beyond it is pulled in.")]
@@ -214,14 +220,35 @@ namespace LightAndShadow
         /// player's health falls, up to <see cref="lowHealthAttackSpeed"/>
         /// times it at zero, and scaled by any attack speed buff.
         /// </summary>
-        public float CurrentAttacksPerSecond
-        {
-            get
-            {
-                float missing = Health != null ? 1f - Mathf.Clamp01(Health.Fraction) : 0f;
-                return attacksPerSecond * Mathf.Lerp(1f, lowHealthAttackSpeed, missing) * AttackSpeedMultiplier;
-            }
-        }
+        public float CurrentAttacksPerSecond =>
+            attacksPerSecond * Mathf.Lerp(1f, LowHealthAttackSpeed, MissingHealth) * AttackSpeedMultiplier;
+
+        /// <summary>
+        /// Levels raise bloodlust rather than the base rate: the speed at
+        /// zero health is 1.1 times higher per level past 1 (x2 becomes
+        /// x2.2, then x2.42), while full health swings at the base rate.
+        /// </summary>
+        protected override float AttackSpeedPerLevel => 1f;
+
+        private float LowHealthAttackSpeed => lowHealthAttackSpeed * PerLevel(1.1f);
+
+        /// <summary>What a swipe's length and width are multiplied by for each level past 1.</summary>
+        private const float ClawSizePerLevel = 1.2f;
+
+        /// <summary>What the reap's length and width are multiplied by for each level past 1.</summary>
+        private const float ReapSizePerLevel = 1.1f;
+
+        /// <summary>What the reap's damage is multiplied by for each level past 1.</summary>
+        private const float ReapDamagePerLevel = 1.25f;
+
+        /// <summary>
+        /// Swipe thickness multiplier right now: 1 at full health, rising
+        /// linearly to <see cref="lowHealthThickness"/> at zero.
+        /// </summary>
+        public float CurrentThickness => Mathf.Lerp(1f, lowHealthThickness, MissingHealth);
+
+        /// <summary>Fraction of the player's health missing, 0 to 1.</summary>
+        private float MissingHealth => Health != null ? 1f - Mathf.Clamp01(Health.Fraction) : 0f;
 
         /// <summary>
         /// A tinted copy of the swipe material, rebuilt only when the source or
@@ -232,13 +259,7 @@ namespace LightAndShadow
         {
             get
             {
-                Material source = swipeMaterial;
-
-                if (source == null)
-                {
-                    Renderer own = GetComponentInChildren<Renderer>();
-                    source = own != null ? own.sharedMaterial : null;
-                }
+                Material source = SwipeMaterialSource;
 
                 if (source == null)
                 {
@@ -253,35 +274,73 @@ namespace LightAndShadow
                         Destroy(tintedMaterial);
                     }
 
-                    tintedMaterial = new Material(source) { name = source.name + " (Scarlett swipe)" };
+                    tintedMaterial = CreateSwipeMaterial();
                     tintedSource = source;
                     tintedColour = swipeColour;
                     tintedOvershadow = overshadowColour;
                     tintedBlood = bloodColour;
-
-                    if (tintedMaterial.HasProperty(BloodColorId))
-                    {
-                        tintedMaterial.SetColor(BloodColorId, bloodColour);
-                    }
-
-                    if (tintedMaterial.HasProperty(BehindColorId))
-                    {
-                        tintedMaterial.SetColor(BehindColorId, overshadowColour);
-                    }
-
-                    if (tintedMaterial.HasProperty(BaseColorId))
-                    {
-                        tintedMaterial.SetColor(BaseColorId, swipeColour);
-                    }
-
-                    if (tintedMaterial.HasProperty(ColorId))
-                    {
-                        tintedMaterial.SetColor(ColorId, swipeColour);
-                    }
                 }
 
                 return tintedMaterial;
             }
+        }
+
+        /// <summary>Colour of the slash itself, for the claw's vertex colour.</summary>
+        public Color SwipeColour => swipeColour;
+
+        /// <summary>The swipe material before tinting: the one set, or else the scythe's own.</summary>
+        private Material SwipeMaterialSource
+        {
+            get
+            {
+                if (swipeMaterial != null)
+                {
+                    return swipeMaterial;
+                }
+
+                Renderer own = GetComponentInChildren<Renderer>();
+                return own != null ? own.sharedMaterial : null;
+            }
+        }
+
+        /// <summary>
+        /// A new copy of the swipe material, tinted in the slash, overshadow
+        /// and blood colours, for tears made away from the scythe itself, such
+        /// as Scarlett's boss rifts. Safe to call on the prefab. The caller
+        /// owns it. Null if there is no material to copy.
+        /// </summary>
+        public Material CreateSwipeMaterial()
+        {
+            Material source = SwipeMaterialSource;
+
+            if (source == null)
+            {
+                return null;
+            }
+
+            Material tinted = new Material(source) { name = source.name + " (Scarlett swipe)" };
+
+            if (tinted.HasProperty(BloodColorId))
+            {
+                tinted.SetColor(BloodColorId, bloodColour);
+            }
+
+            if (tinted.HasProperty(BehindColorId))
+            {
+                tinted.SetColor(BehindColorId, overshadowColour);
+            }
+
+            if (tinted.HasProperty(BaseColorId))
+            {
+                tinted.SetColor(BaseColorId, swipeColour);
+            }
+
+            if (tinted.HasProperty(ColorId))
+            {
+                tinted.SetColor(ColorId, swipeColour);
+            }
+
+            return tinted;
         }
 
         protected override void Tick(Vector3 orbitPosition, Quaternion orbitRotation, float deltaTime)
@@ -376,8 +435,14 @@ namespace LightAndShadow
             // so a positive side rakes left to right.
             Vector3 across = Vector3.Cross(Vector3.up, aim) * clawSide;
 
-            ScarlettClaw.Spawn(cursorPoint, across, aim, Owner.position, claw, blood, ResolvedSwipeMaterial,
-                               swipeColour, Lifesteal);
+            ScarlettClaw.Spawn(cursorPoint, across, aim, Owner.position, LeveledCopy(claw, c =>
+                               {
+                                   float size = PerLevel(ClawSizePerLevel);
+                                   c.damage *= LevelScale;
+                                   c.span *= size;
+                                   c.thickness *= size;
+                               }), blood, ResolvedSwipeMaterial,
+                               swipeColour, Lifesteal, CurrentThickness);
 
             // The scythe swings the same way, over the time the claw takes to
             // cross, from the side the last swing finished on.
@@ -395,7 +460,7 @@ namespace LightAndShadow
         {
             if (Health != null)
             {
-                Health.Heal(dealt * lifesteal);
+                Health.Heal(dealt * lifesteal * LevelScale);
             }
         }
 
@@ -513,7 +578,13 @@ namespace LightAndShadow
 
                 // Left to right across the cursor, as the scythe swings.
                 Vector3 across = Vector3.Cross(Vector3.up, tearAim);
-                reapTear = ScarlettClaw.Spawn(reapPoint, across, tearAim, ownerPosition, reap, reapBlood,
+                reapTear = ScarlettClaw.Spawn(reapPoint, across, tearAim, ownerPosition, LeveledCopy(reap, c =>
+                                              {
+                                                  float size = PerLevel(ReapSizePerLevel);
+                                                  c.damage *= PerLevel(ReapDamagePerLevel);
+                                                  c.span *= size;
+                                                  c.thickness *= size;
+                                              }), reapBlood,
                                               ResolvedSwipeMaterial, swipeColour, ReapLifesteal);
             }
 
@@ -542,7 +613,7 @@ namespace LightAndShadow
         {
             if (Health != null)
             {
-                Health.Heal(dealt * reapLifesteal);
+                Health.Heal(dealt * reapLifesteal * LevelScale);
             }
         }
 

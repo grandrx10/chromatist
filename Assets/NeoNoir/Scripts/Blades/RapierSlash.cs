@@ -25,7 +25,7 @@ namespace LightAndShadow
     ///
     /// Spawned at runtime and builds its own trail, so it needs no prefab.
     /// </remarks>
-    public sealed class RapierSlash : MonoBehaviour
+    public sealed class RapierSlash : MonoBehaviour, IParryableProjectile
     {
         [Serializable]
         public sealed class Settings
@@ -68,11 +68,14 @@ namespace LightAndShadow
         private Color effectTint;
         private Blade source;
         private Vector3 position;
+        private Vector3 carried;
+        private TrailRenderer trail;
         private float heading;
         private float curvature;
         private float throughLength;
         private float travelled;
         private bool finished;
+        private bool held;
 
         /// <summary>
         /// Fires a slash from <paramref name="origin"/>, leaving along
@@ -108,6 +111,10 @@ namespace LightAndShadow
         {
             settings = launchSettings;
             position = origin;
+            PlayerProjectiles.Add(this);
+
+            // Keeps the speed of a player flicking it mid-run.
+            carried = ChaseFrame.Velocity;
 
             Vector2 forward = new Vector2(direction.x, direction.z);
             forward = forward.sqrMagnitude > 0.000001f ? forward.normalized : Vector2.up;
@@ -153,7 +160,7 @@ namespace LightAndShadow
             throughLength = arc;
             heading = Mathf.Atan2(forward.y, forward.x);
 
-            TrailRenderer trail = gameObject.AddComponent<TrailRenderer>();
+            trail = gameObject.AddComponent<TrailRenderer>();
             trail.time = settings.trailTime;
             trail.widthMultiplier = settings.width;
             trail.widthCurve = PointedWidth(0f);
@@ -191,13 +198,19 @@ namespace LightAndShadow
 
         private void Update()
         {
-            if (finished)
+            CarryTrail(carried * Time.deltaTime);
+
+            // Its tail still finishing drawing in, carried on with it.
+            if (finished || held)
             {
+                position += carried * Time.deltaTime;
+                transform.position = position;
                 return;
             }
 
             float step = Mathf.Min(settings.speed * Time.deltaTime, settings.range - travelled);
             Vector3 start = position;
+            position += carried * Time.deltaTime;
 
             int pieces = Mathf.Max(1, Mathf.CeilToInt(step / MaxStep));
             float piece = step / pieces;
@@ -222,10 +235,55 @@ namespace LightAndShadow
 
             if (travelled >= settings.range - 0.0001f)
             {
-                // Stop, but let the tail finish drawing in before going.
-                finished = true;
-                Destroy(gameObject, settings.trailTime + 0.05f);
+                Finish();
             }
+        }
+
+        /// <summary>
+        /// Moves the line already drawn on by <paramref name="carry"/>. A trail
+        /// stays where it was drawn, so a slash keeping a run's speed would
+        /// otherwise lay its line squashed short when flicked back down the
+        /// run, and stretched long when flicked up it.
+        /// </summary>
+        private void CarryTrail(Vector3 carry)
+        {
+            if (trail == null || carry == Vector3.zero)
+            {
+                return;
+            }
+
+            for (int i = 0; i < trail.positionCount; i++)
+            {
+                trail.SetPosition(i, trail.GetPosition(i) + carry);
+            }
+        }
+
+        public Vector3 Position => position;
+
+        public void Hold()
+        {
+            held = true;
+        }
+
+        public void Deflect()
+        {
+            if (!finished)
+            {
+                Finish();
+            }
+        }
+
+        /// <summary>Stops, but lets the tail finish drawing in before going.</summary>
+        private void Finish()
+        {
+            PlayerProjectiles.Remove(this);
+            finished = true;
+            Destroy(gameObject, settings.trailTime + 0.05f);
+        }
+
+        private void OnDestroy()
+        {
+            PlayerProjectiles.Remove(this);
         }
     }
 }

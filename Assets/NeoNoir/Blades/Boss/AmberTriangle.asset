@@ -1,0 +1,320 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4e7e9ea92d4af24da6f996506746e7c, type: 3}
+  m_Name: AmberTriangle
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.AmberTrianglePattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  centreTolerance: 1
+  leapHeight: 8
+  leapTime: 0.9
+  leapSpin: 360
+  landingMaterial: {fileID: 0}
+  landing:
+    ringRadius: 6
+    ringWidth: 1
+    ringTime: 0.45
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 14
+    debrisSize: 0.5
+    debrisUpSpeed: {x: 6, y: 10}
+    debrisOutSpeed: {x: 3, y: 7}
+    debrisGravity: 25
+    debrisTime: 0.8
+    debrisIntensity: 1.5
+  landingShake: 0.8
+  landingShakeDuration: 0.4
+  landingRadius: 4
+  landingOutline: 0.12
+  landingDamage: 25
+  landingSink: 0.3
+  buriedTime: 0.35
+  pullStrainTime: 0.6
+  pullStrainRate: 5
+  pullStrainLift: 0.15
+  pullStrainRock: 6
+  pullYankTime: 0.18
+  pullFlipTime: 0.45
+  floatHeight: 1
+  blastRadius: 3.5
+  blast:
+    growTime: 0.12
+    fadeTime: 0.35
+    colour: {r: 3, g: 1.5, b: 0.25, a: 1}
+    outlineWidth: 0.15
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  warningColour: {r: 1, g: 0.65, b: 0.12, a: 1}
+  warningLineIntensity: 2.5
+  warningHeight: 0.12
+  triangle:
+    radius: 15
+    groundMask:
+      serializedVersion: 2
+      m_Bits: 1
+    swordPrefab: {fileID: 2189733109407162466, guid: 4051169c9fdf6b04da8a31ced85abaa1, type: 3}
+    swordScale: 1
+    swordRotation: {x: 0, y: 0, z: 0}
+    swordColour: {r: 0.85, g: 0.85, b: 0.95, a: 1}
+    startScale: 0.3
+    flyTime: 0.8
+    curveSide: 6
+    curveLift: 3
+    stabHeight: 2
+    hangTime: 0.15
+    stabTime: 0.12
+    stabDepth: 0.6
+    stabMaterial: {fileID: 0}
+    stabImpact:
+      ringRadius: 2.5
+      ringWidth: 0.5
+      ringTime: 0.35
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 4, y: 8}
+      debrisOutSpeed: {x: 2, y: 4}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    stabShake: 0.3
+    stabShakeDuration: 0.2
+    orbHeight: 1.6
+    orbPrefab: {fileID: 1425908353845180611, guid: d7e4884ffa90e864ba9e97bfb74ea490, type: 3}
+    orbSize: 1
+    orbColour: {r: 3, g: 1.2029345, b: 0.6125654, a: 1}
+    orbGrowTime: 0.3
+    chargeTime: 2
+    warningWidth: 0.15
+    warningColour: {r: 3, g: 1.1867337, b: 0.6125654, a: 1}
+    chargePulse: 0.2
+    chargePulseRate: 4
+    laser:
+      length: 40
+      radius: 0.5
+      wallMask:
+        serializedVersion: 2
+        m_Bits: 0
+      growTime: 0.25
+      shrinkTime: 0.3
+      damagePerSecond: 10
+      tickInterval: 0.25
+      singleHit: 0
+      hitDamage: 20
+      hitMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      breaksGiftBoxes: 0
+      colour: {r: 2.5693965, g: 0.4463139, b: 0.036359318, a: 1}
+      flash:
+        flashSize: 2.5
+        flashTime: 0.2
+        sparkCount: 12
+        sparkSize: 0.35
+        sparkSpeed: {x: 4, y: 9}
+        sparkLife: 0.35
+        colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      wallSparks:
+        flashSize: 1.2
+        flashTime: 0.1
+        sparkCount: 4
+        sparkSize: 0.3
+        sparkSpeed: {x: 3, y: 7}
+        sparkLife: 0.3
+        colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      wallSparkInterval: 0.1
+      boltCount: 5
+      boltColour: {r: 0, g: 0, b: 0, a: 1}
+      boltWidth: 0.12
+      boltReach: {x: 0.9, y: 1.6}
+      boltStep: 0.8
+      flicker: 0.04
+    missilesPerSecond: 3
+    missileSpread: 40
+    missileLift: 30
+    missilePrefab: {fileID: 5839270658587173453, guid: ddc8cb895576e184ca56daa83fda6aa0, type: 3}
+    missile:
+      scatterSpeed: 7
+      scatterTime: 0.2
+      lockTurnRate: 600
+      lockTime: 0.15
+      trackTurnRate: 160
+      speed: 10
+      lifetime: 5
+      damage: 5
+      radius: 0.4
+      hitMask:
+        serializedVersion: 2
+        m_Bits: 129
+      size: 0.7
+      colour: {r: 3.1739602, g: 0.3995584, b: 0, a: 1}
+      trailTime: 0.3
+      trailWidth: 0.6
+      dissipate:
+        flashSize: 0.6
+        flashTime: 0.12
+        sparkCount: 6
+        sparkSize: 0.2
+        sparkSpeed: {x: 3, y: 6}
+        sparkLife: 0.25
+        colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    debrisPerSecond: 7
+    debrisRange: 12
+    debrisClearance: 3
+    debrisDropHeight: 25
+    debris:
+      art: {fileID: 5259286637870094825, guid: bb4a7d2a590561a4da550a7a6f834444, type: 3}
+      size: 2
+      colour: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+      tumbleSpeed: 540
+      flightTime: {x: 1, y: 1.3}
+      arcHeight: 0
+      damage: 10
+      damageRadius: 2.5
+      warningColour: {r: 1, g: 0.50780183, b: 0.19999999, a: 1}
+      warningOutline: 0.08
+      warningHeight: 0.02
+      landingBurst:
+        ringRadius: 1.8
+        ringWidth: 0.4
+        ringTime: 0.3
+        floorOffset: 0.05
+        ringIntensity: 3
+        debrisCount: 4
+        debrisSize: 0.25
+        debrisUpSpeed: {x: 4, y: 7}
+        debrisOutSpeed: {x: 2, y: 4}
+        debrisGravity: 25
+        debrisTime: 0.5
+        debrisIntensity: 1.5
+      shakeStrength: 0.05
+      shakeDuration: 0.15
+      restTime: 0.6
+      shrinkTime: 0.3
+    pullOutTime: 0.25
+    returnTime: 0.6
+  strikeInterval: 2
+  gripAbovePivot: 2
+  headUp: 1
+  liftTime: 0.35
+  liftHeight: 2
+  windup: {x: 15, y: 35}
+  warnTime: 1
+  lockTime: 0.3
+  trackTurnSpeed: 540
+  idleTurnSpeed: 360
+  swingTime: 0.12
+  strikeAngle: 110
+  strikeDrop: 1
+  strikeReach: 2
+  strikeHoldTime: 0.2
+  recoverTime: 0.3
+  glisten:
+    colour: {r: 0.9811321, g: 0.28616363, b: 0.087931626, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  slash:
+    damage: 20
+    length: 30
+    width: 5
+    waveTime: 0.15
+    holdTime: 0.3
+    fadeTime: 0.4
+    floorOffset: 0.05
+    hitSlashes: 3
+    hitSlashSize: 2
+    hitColour: {r: 1, g: 0.42, b: 0.02, a: 1}
+    frontTaper: 3
+    farWidth: 1
+    lineIntensity: 2
+    wallHeight: 4
+    wallWidth: 0.4
+    wallRiseTime: 0.08
+    wallFallTime: 0.35
+    wallIntensity: 4
+    arcRadius: 4.5
+    arcWidth: 1.5
+    arcTime: 0.2
+    arcIntensity: 2
+  slashColour: {r: 1, g: 0.7, b: 0.2, a: 1}
+  slashMaterial: {fileID: 0}
+  strikeShake: 0.6
+  strikeShakeDuration: 0.3
+  slashesPerSlam: 3
+  slamFlyHeight: 6
+  slamRiseTime: 0.5
+  slamHangTime: 0.3
+  slamDropTime: 0.5
+  slamSpins: 2
+  slamRadius: 6
+  slamDamage: 30
+  slamSink: 0.4
+  stuckTime: 5
+  debrisPerSecond: 5
+  debrisDropHeight: 25
+  debris:
+    art: {fileID: 5259286637870094825, guid: bb4a7d2a590561a4da550a7a6f834444, type: 3}
+    size: 1
+    colour: {r: 0.85, g: 0.85, b: 0.85, a: 1}
+    tumbleSpeed: 540
+    flightTime: {x: 0.8, y: 1.2}
+    arcHeight: 6
+    damage: 10
+    damageRadius: 1.5
+    warningColour: {r: 1, g: 0.58356863, b: 0.19999999, a: 1}
+    warningOutline: 0.08
+    warningHeight: 0.02
+    landingBurst:
+      ringRadius: 1.8
+      ringWidth: 0.4
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 4
+      debrisSize: 0.25
+      debrisUpSpeed: {x: 4, y: 7}
+      debrisOutSpeed: {x: 2, y: 4}
+      debrisGravity: 25
+      debrisTime: 0.5
+      debrisIntensity: 1.5
+    shakeStrength: 0.2
+    shakeDuration: 0.15
+    restTime: 0.6
+    shrinkTime: 0.3

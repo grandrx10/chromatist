@@ -27,7 +27,10 @@ namespace LightAndShadow
     /// tests the path it covers each frame with a sphere cast, needing no
     /// rigidbody. A <see cref="ParryBarrier"/> is checked first and catches
     /// it harmlessly. The player it hits takes <see cref="Settings.damage"/>;
-    /// anything else, a wall or the floor, makes it dissipate. Either way it
+    /// anything else, a wall or the floor, makes it dissipate. With a
+    /// <see cref="Settings.blastRadius"/>, any hit explodes in a
+    /// <see cref="BlastSphere"/> instead, and the player inside it takes the
+    /// damage, once, whether hit directly or not. Either way it
     /// goes in a small <see cref="EnergyBurst"/>, as it does at the end of
     /// <see cref="Settings.lifetime"/>. Colliders belonging to whoever fired
     /// it are ignored.
@@ -74,6 +77,17 @@ namespace LightAndShadow
             [Tooltip("What stops the missile. Leave the Enemy layer out. Trigger colliders are always ignored.")]
             public LayerMask hitMask = ~0;
 
+            [Tooltip("Radius of the explosion when it hits the player, a wall or the floor, hurting the player inside it for Damage instead of the hit itself. 0 for none: only a direct hit hurts.")]
+            [Min(0f)] public float blastRadius;
+
+            [Tooltip("Look of the explosion, when Blast Radius is above 0.")]
+            public BlastSphere.Settings blast = new BlastSphere.Settings
+            {
+                growTime = 0.1f,
+                fadeTime = 0.25f,
+                outlineWidth = 0.08f,
+            };
+
             [Header("Look")]
             [Tooltip("Size of the ball drawn when no missile art is given.")]
             [Min(0.01f)] public float size = 0.35f;
@@ -100,6 +114,7 @@ namespace LightAndShadow
         }
 
         private static readonly RaycastHit[] hits = new RaycastHit[16];
+        private static readonly Collider[] overlaps = new Collider[16];
 
         private Settings settings;
         private Transform owner;
@@ -210,14 +225,23 @@ namespace LightAndShadow
 
             if (Cast(from, to, out RaycastHit hit))
             {
-                PlayerHealth health = hit.collider.GetComponentInParent<PlayerHealth>();
+                Vector3 point = from + direction * hit.distance;
 
-                if (health != null)
+                if (settings.blastRadius > 0f)
                 {
-                    health.TakeDamage(settings.damage, from);
+                    Explode(point);
+                }
+                else
+                {
+                    PlayerHealth health = hit.collider.GetComponentInParent<PlayerHealth>();
+
+                    if (health != null)
+                    {
+                        health.TakeDamage(settings.damage, from);
+                    }
                 }
 
-                Dissipate(from + direction * hit.distance);
+                Dissipate(point);
                 return;
             }
 
@@ -285,6 +309,26 @@ namespace LightAndShadow
             }
 
             return found;
+        }
+
+        /// <summary>The explosion: a sphere of the blast radius, hurting the player it reaches.</summary>
+        private void Explode(Vector3 point)
+        {
+            BlastSphere.Create(point, settings.blastRadius, settings.blast);
+
+            int count = Physics.OverlapSphereNonAlloc(point, settings.blastRadius, overlaps, Physics.AllLayers,
+                                                      QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                PlayerHealth health = overlaps[i].GetComponentInParent<PlayerHealth>();
+
+                if (health != null)
+                {
+                    health.TakeDamage(settings.damage, point);
+                    return;
+                }
+            }
         }
 
         private void Dissipate(Vector3 point)

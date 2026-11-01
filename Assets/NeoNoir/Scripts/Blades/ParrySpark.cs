@@ -144,7 +144,8 @@ namespace LightAndShadow
 
                 alive = true;
                 velocities[i] = velocities[i] * decay + Vector3.down * (settings.gravity * deltaTime);
-                positions[i] += velocities[i] * deltaTime;
+                // Carried along with a forced run, as the parry was.
+                positions[i] += velocities[i] * deltaTime + ChaseFrame.Step(deltaTime);
             }
 
             if (!alive)

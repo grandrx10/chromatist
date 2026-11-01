@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d61bc3ca2fc665e429a07a250ddef9e2, type: 3}
+  m_Name: SageLotusAttack
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.SageLotusPattern
+  delayAfter: 0
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  leapHeight: 8
+  leapTime: 0.9
+  leapSpin: 360
+  landingSink: 0.3
+  landingRadius: 4
+  landingOutline: 0.12
+  landingDamage: 25
+  warningColour: {r: 0.45, g: 1, b: 0.55, a: 1}
+  warningHeight: 0.12
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  landingMaterial: {fileID: 0}
+  landing:
+    ringRadius: 6
+    ringWidth: 1
+    ringTime: 0.45
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 14
+    debrisSize: 0.5
+    debrisUpSpeed: {x: 6, y: 10}
+    debrisOutSpeed: {x: 3, y: 7}
+    debrisGravity: 25
+    debrisTime: 0.8
+    debrisIntensity: 1.5
+  blastRadius: 3.5
+  blast:
+    growTime: 0.12
+    fadeTime: 0.35
+    colour: {r: 0.9, g: 3, b: 1.1, a: 1}
+    outlineWidth: 0.15
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  landingShake: 0.8
+  landingShakeDuration: 0.4
+  landingHold: 1
+  sage: {fileID: 11400000, guid: 8f8e469f5c0c7c14aae8710026916630, type: 2}
+  lotusMaterial: {fileID: 0}
+  lotus:
+    size: 1.2
+    startScale: 0.1
+    bloomTime: 1.5
+    bloomSpin: 180
+    floorOffset: 0.05
+    burstOnBloom: 1
+    stepRadius: 0.5
+    lifetime: 12
+    wiltTime: 0.3
+    damage: 12
+    burstRadius: 2
+    heal: 0
+    damageWhenPlayerSteps: 0
+    slashEffect: 1
+    petals: 8
+    petal:
+      spacing: 0.25
+      size: {x: 0.14, y: 0.26}
+      scatter: 0.2
+      burstSpeed: 2.5
+      carrySpeed: 3
+      drag: 4
+      fallSpeed: 0.3
+      flutter: 0.15
+      flutterRate: 1.2
+      spin: 240
+      floatTime: 0.4
+      floatJitter: 0.4
+      fadeTime: 0.6
+    ring:
+      notes: 0
+      noteScale: 0.7
+      speed: 6
+      lift: 45
+      drag: 3
+      spin: 360
+      lifetime: 0.05
+      ringTime: 0.3
+      ringGrowth: 2.5
+      ringThickness: 0.1
+      ringIntensity: 4
+      ringBorderWidth: 0.025
+      ringBorderColour: {r: 1, g: 1, b: 1, a: 1}
+      modelRotation: {x: 0, y: 0, z: 0}
+  lotusDamage: 10
+  lotusBlast:
+    growTime: 0.1
+    fadeTime: 0.3
+    colour: {r: 0.9, g: 3, b: 1.1, a: 1}
+    outlineWidth: 0.1
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  spacing: 2.8
+  fallbackHalfSize: 12
+  ringInterval: 0.5
+  sweepStep: 0.05
+  rowGap: 0.8
+  quadrantGap: 0.5
+  patternGap: 1

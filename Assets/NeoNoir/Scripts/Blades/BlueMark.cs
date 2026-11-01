@@ -12,7 +12,9 @@ namespace LightAndShadow
     /// <remarks>
     /// Rings are concentric, the first hugging the enemy and each new one a
     /// step further out, so the stack reads at a glance. A new ring pops in
-    /// slightly oversized and flashing, then settles.
+    /// slightly oversized and flashing, then settles. Each ring is edged in
+    /// white on both sides, <see cref="Settings.borderWidth"/> wide: lying
+    /// flat on the floor, the rings give the outline pass no edge to find.
     ///
     /// Wearing off. Once <see cref="Settings.decayDelay"/> seconds pass with
     /// no new ring, the outermost one dissolves over
@@ -59,6 +61,12 @@ namespace LightAndShadow
             [Tooltip("Width of each ring's outline.")]
             [Min(0.01f)] public float thickness = 0.07f;
 
+            [Tooltip("Width of the white border along each edge of a ring, to match the game's outlines. 0 for none.")]
+            [Min(0f)] public float borderWidth = 0.025f;
+
+            [Tooltip("Colour of the border.")]
+            [ColorUsage(false, true)] public Color borderColour = Color.white;
+
             [Tooltip("Height above the bottom of the enemy's collider, taken as the floor, that the rings are drawn at.")]
             [Range(0f, 2f)] public float floorOffset = 0.05f;
 
@@ -87,6 +95,10 @@ namespace LightAndShadow
             public GameObject Host;
             public MeshRenderer Renderer;
             public Mesh Mesh;
+
+            // The white edges, a child of Host so they pop and fade with it. Null with no border.
+            public MeshRenderer Border;
+            public Mesh BorderMesh;
 
             // 1 just landed, settling to 0.
             public float Pop;
@@ -279,6 +291,12 @@ namespace LightAndShadow
                 block.SetColor(BaseColorId, colour);
                 block.SetFloat(FadeId, visibility);
                 ring.Renderer.SetPropertyBlock(block);
+
+                if (ring.Border != null)
+                {
+                    block.SetColor(BaseColorId, settings.borderColour);
+                    ring.Border.SetPropertyBlock(block);
+                }
             }
         }
 
@@ -292,23 +310,47 @@ namespace LightAndShadow
                 GameObject host = new GameObject("Ring " + rings.Count);
                 host.transform.SetParent(transform, false);
 
-                Mesh mesh = AnnulusMesh(radius - settings.thickness * 0.5f, radius + settings.thickness * 0.5f, Segments);
-                host.AddComponent<MeshFilter>().sharedMesh = mesh;
+                float inner = radius - settings.thickness * 0.5f;
+                float outer = radius + settings.thickness * 0.5f;
 
-                MeshRenderer ringRenderer = host.AddComponent<MeshRenderer>();
-                ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                ringRenderer.receiveShadows = false;
+                Mesh mesh = AnnulusMesh(inner, outer, Segments);
+                MeshRenderer ringRenderer = AddRenderer(host, mesh);
 
-                if (material != null)
+                // Strips just inside and just outside the ring, touching it
+                // but never overlapping it, so nothing fights for depth.
+                MeshRenderer border = null;
+                Mesh borderMesh = null;
+
+                if (settings.borderWidth > 0f)
                 {
-                    ringRenderer.sharedMaterial = material;
+                    GameObject borderHost = new GameObject("Border");
+                    borderHost.transform.SetParent(host.transform, false);
+
+                    borderMesh = BorderMesh(inner, outer, settings.borderWidth, Segments);
+                    border = AddRenderer(borderHost, borderMesh);
                 }
 
                 host.SetActive(false);
-                rings.Add(new Ring { Host = host, Renderer = ringRenderer, Mesh = mesh });
+                rings.Add(new Ring { Host = host, Renderer = ringRenderer, Mesh = mesh, Border = border, BorderMesh = borderMesh });
             }
 
             return rings[index];
+        }
+
+        private MeshRenderer AddRenderer(GameObject host, Mesh mesh)
+        {
+            host.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            MeshRenderer added = host.AddComponent<MeshRenderer>();
+            added.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            added.receiveShadows = false;
+
+            if (material != null)
+            {
+                added.sharedMaterial = material;
+            }
+
+            return added;
         }
 
         private void OnDestroy()
@@ -318,6 +360,11 @@ namespace LightAndShadow
                 if (ring.Mesh != null)
                 {
                     Destroy(ring.Mesh);
+                }
+
+                if (ring.BorderMesh != null)
+                {
+                    Destroy(ring.BorderMesh);
                 }
             }
         }
@@ -330,7 +377,37 @@ namespace LightAndShadow
         {
             List<Vector3> vertices = new List<Vector3>();
             List<int> triangles = new List<int>();
+            AppendAnnulus(inner, outer, segments, vertices, triangles);
+            return Build("Blue ring", vertices, triangles);
+        }
 
+        /// <summary>
+        /// Two strips <paramref name="width"/> wide hugging a ring between
+        /// <paramref name="inner"/> and <paramref name="outer"/>: one just
+        /// inside it, one just outside. Its outline, as one mesh.
+        /// </summary>
+        public static Mesh BorderMesh(float inner, float outer, float width, int segments)
+        {
+            List<Vector3> vertices = new List<Vector3>();
+            List<int> triangles = new List<int>();
+            AppendAnnulus(inner - width, inner, segments, vertices, triangles);
+            AppendAnnulus(outer, outer + width, segments, vertices, triangles);
+            return Build("Blue ring border", vertices, triangles);
+        }
+
+        private static Mesh Build(string meshName, List<Vector3> vertices, List<int> triangles)
+        {
+            Mesh mesh = new Mesh { name = meshName };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        private static void AppendAnnulus(float inner, float outer, int segments, List<Vector3> vertices, List<int> triangles)
+        {
+            int first = vertices.Count;
             inner = Mathf.Max(0f, inner);
 
             for (int i = 0; i <= segments; i++)
@@ -345,20 +422,13 @@ namespace LightAndShadow
             // Clockwise seen from above, so the face points up.
             for (int i = 0; i < segments; i++)
             {
-                int innerA = i * 2;
+                int innerA = first + i * 2;
                 int outerA = innerA + 1;
                 int innerB = innerA + 2;
                 int outerB = innerA + 3;
 
                 triangles.AddRange(new[] { innerA, outerA, innerB, outerA, outerB, innerB });
             }
-
-            Mesh ring = new Mesh { name = "Blue ring" };
-            ring.SetVertices(vertices);
-            ring.SetTriangles(triangles, 0);
-            ring.RecalculateNormals();
-            ring.RecalculateBounds();
-            return ring;
         }
     }
 }

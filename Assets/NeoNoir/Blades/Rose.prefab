@@ -185,7 +185,7 @@ MonoBehaviour:
   orbitHeight: 1.2
   bobAmplitude: 0.08
   bobFrequency: 0.5
-  followTime: 0.3
+  followTime: 0
   engageTime: 0.12
   releaseTime: 0.3
   attacksPerSecond: 3
@@ -246,6 +246,7 @@ MonoBehaviour:
   dashDamage: 10
   trailRadius: 0.6
   trailLinger: 0.25
+  dashParryPadding: 0.3
   trailWidth: 0.35
   leadDistance: 1
   dashFlurry:
@@ -266,6 +267,21 @@ MonoBehaviour:
     floatTime: 0.8
     floatJitter: 0.6
     fadeTime: 0.8
+  killPetals: 18
+  killPetal:
+    spacing: 0.25
+    size: {x: 0.14, y: 0.26}
+    scatter: 0.3
+    burstSpeed: 3
+    carrySpeed: 4
+    drag: 3.5
+    fallSpeed: 0.3
+    flutter: 0.15
+    flutterRate: 1.2
+    spin: 240
+    floatTime: 0.6
+    floatJitter: 0.5
+    fadeTime: 0.7
   slashMaterial: {fileID: 0}
   trailColour: {r: 1, g: 0.22, b: 0.45, a: 1}
   petalMaterial: {fileID: 0}

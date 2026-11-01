@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 551cf85a451abb54b89d655cab38eaa7, type: 3}
+  m_Name: KatanaColumnThrow
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.KatanaColumnThrowPattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: e381f1e36c78a744fbbb9fba18dfebde, type: 3}
+  lookAhead: {x: 2, y: 100}
+  sideReach: 50
+  viewMargin: 0.1
+  maxWait: 6
+  flyTime: 0.22
+  slashTime: 0.1
+  stepTime: 0.04
+  cutSpeed: 2
+  slashLength: 4
+  streakColour: {r: 0.2, g: 1.6, b: 2.2, a: 1}
+  slashScale: 1.3
+  cutShake: 0.35
+  cutShakeDuration: 0.2
+  outlineColour: {r: 0.2, g: 2, b: 2.6, a: 1}
+  outlineWidth: 0.14
+  outlineHold: 0.35
+  outlineFade: 0.25
+  glistenColour: {r: 0.1, g: 0.8, b: 1, a: 1}
+  glowIntensity: 2.5
+  glowPeak: 2
+  glowFadeTime: 0.15
+  gleam:
+    size: 1
+    waist: 0.12
+    time: 0.35
+    openFraction: 0.25
+    spin: 45
+    intensity: 4
+    towardCamera: 0.6
+  gleamOffset: {x: 0, y: 0, z: 0}
+  glistenSpread: 0.6
+  glistenInterval: {x: 0.2, y: 0.06}
+  glistenSize: {x: 0.5, y: 1}
+  finalGleamSize: 1.8
+  cut:
+    slashCount: 4
+    slashSpread: 0.35
+    slashTilt: 30
+    maxPieces: 24
+    minPieceSize: 0.3
+    cutFaceMaterial: {fileID: 0}
+    cutFaceColour: {r: 2, g: 2, b: 2, a: 1}
+    cutFaceUvScale: 1
+    flashColour: {r: 4, g: 4, b: 4, a: 1}
+    flashWidth: 0.18
+    flashLength: 1.4
+    flashDrawTime: 0.06
+    flashTime: 0.25
+    slashInterval: 0.01
+    splitDelay: 0.01
+    scatterSpeed: {x: 3, y: 8}
+    upSpeed: {x: 2, y: 6}
+    pushSpeed: 3
+    inheritVelocity: 0.3
+    spin: 540
+    density: 1
+    pieceLife: 2
+    fadeTime: 0.5
+    shakeStrength: 0.4
+    shakeDuration: 0.25
+  pieceCount: {x: 4, y: 5}
+  chopTilt: 20
+  chopJitter: 0.25
+  chunkScale: 0.25
+  shrinkTime: 0.5
+  trailColour: {r: 0.1, g: 1.6, b: 2.2, a: 1}
+  trailWidth: 0.15
+  trailTime: 0.2
+  pieces:
+    health: 10
+    contactDamage: 10
+    contactPadding: 0.1
+    maxFlightTime: 3
+    roll: 540
+  liftTime: 0.5
+  liftStagger: 0.06
+  fanAngle: 200
+  fanRadius: 6
+  hoverHeight: 3.5
+  heightSpread: 1.2
+  fanJitter: 0.6
+  hoverBob: 0.15
+  hoverTumble: 90
+  hoverTime: 0.7
+  throwSpeed: 22
+  throwInterval: 0.4

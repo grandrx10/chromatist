@@ -60,7 +60,37 @@ namespace LightAndShadow
             }
         }
 
+        /// <summary>
+        /// The boss fight that shuts this gate. Settable from a script, for a
+        /// gate spawned as part of a prefab that cannot point at the scene's
+        /// <see cref="BossIntro"/> itself, such as a room laid down at runtime.
+        /// </summary>
+        public BossIntro LockedByBoss
+        {
+            get => lockedByBoss;
+            set
+            {
+                Unsubscribe();
+                lockedByBoss = value;
+
+                if (isActiveAndEnabled)
+                {
+                    Subscribe();
+                }
+            }
+        }
+
         private void OnEnable()
+        {
+            Subscribe();
+        }
+
+        private void OnDisable()
+        {
+            Unsubscribe();
+        }
+
+        private void Subscribe()
         {
             if (lockedByBoss != null)
             {
@@ -69,7 +99,7 @@ namespace LightAndShadow
             }
         }
 
-        private void OnDisable()
+        private void Unsubscribe()
         {
             if (lockedByBoss != null)
             {

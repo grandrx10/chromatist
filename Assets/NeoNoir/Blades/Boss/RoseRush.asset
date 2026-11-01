@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4edaf6d803cf4947aceb61bb2e2ccde, type: 3}
+  m_Name: RoseRush
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.RoseRushPattern
+  delayAfter: 5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  sinkDepth: 0.3
+  lean: 30
+  leanSharpness: 10
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  centreTolerance: 1
+  leapHeight: 8
+  leapTime: 0.9
+  leapSpin: 360
+  stabTime: 0.15
+  landingHold: 0.5
+  landingRadius: 4
+  landingOutline: 0.12
+  warningColour: {r: 1, g: 0.3, b: 0.55, a: 1}
+  warningHeight: 0.12
+  landingDamage: 25
+  landingMaterial: {fileID: 2100000, guid: 9b9d2daf01576504bbdbede5f66b7fb6, type: 2}
+  landing:
+    ringRadius: 5
+    ringWidth: 0.8
+    ringTime: 0.4
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 12
+    debrisSize: 0.4
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 3, y: 6}
+    debrisGravity: 25
+    debrisTime: 0.7
+    debrisIntensity: 1.5
+  blastRadius: 3
+  blast:
+    growTime: 0.12
+    fadeTime: 0.35
+    colour: {r: 3, g: 0.6, b: 1.3, a: 1}
+    outlineWidth: 0.15
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  landingShake: 0.6
+  landingShakeDuration: 0.35
+  slideTime: 3
+  slideSpeed: 23
+  slideAcceleration: 28
+  momentumBrake: 15
+  edgeMargin: 0.5
+  brakeTime: 0.25
+  chargeTime: 0.5
+  lockBefore: 0.15
+  chargeTurnSpeed: 720
+  chargeRing:
+    rings: 3
+    startRadius: 4
+    endRadius: 0.8
+    startWidth: 0.1
+    endWidth: 0.45
+    floorOffset: 0.06
+    colour: {r: 3, g: 0.6, b: 1.3, a: 1}
+    material: {fileID: 0}
+  glisten:
+    colour: {r: 1, g: 0.22, b: 0.45, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  dashDistance: 8
+  dashSpeed: 50
+  touchDamage: 15
+  touchRadius: 1
+  trail:
+    linger: 3
+    fadeTime: 0.4
+    damagePerSecond: 10
+    tickInterval: 0.5
+    radius: 0.6
+    width: 0.8
+    floorOffset: 0.04
+    spacing: 0.15
+    colour: {r: 2, g: 0.44, b: 0.9, a: 1}
+    material: {fileID: 0}
+    petalHeight: 0.3
+    petals:
+      spacing: 0.25
+      size: {x: 0.12, y: 0.22}
+      scatter: 0.35
+      burstSpeed: 1.5
+      carrySpeed: 2
+      drag: 4
+      fallSpeed: 0.25
+      flutter: 0.15
+      flutterRate: 1.2
+      spin: 240
+      floatTime: 0.8
+      floatJitter: 0.6
+      fadeTime: 0.8
+  petalMaterial: {fileID: 2100000, guid: 9b9d2daf01576504bbdbede5f66b7fb6, type: 2}

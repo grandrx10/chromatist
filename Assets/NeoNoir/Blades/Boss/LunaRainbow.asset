@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 711d7a8eb53a0e745a2552a621cbc304, type: 3}
+  m_Name: LunaRainbow
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LunaRainbowPattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  colours:
+  - {r: 1, g: 0.05098039, b: 0.85616267, a: 1}
+  - {r: 1, g: 0, b: 0.24754286, a: 1}
+  - {r: 1, g: 0.95, b: 0, a: 1}
+  - {r: 0.1, g: 1, b: 0.15, a: 1}
+  - {r: 0.1, g: 0.35, b: 1, a: 1}
+  bandWidth: 8
+  arenaRadius: 80
+  faintness: 0.5
+  appearTime: 0.3
+  bandHeight: 0.03
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  rounds:
+  - colours: 1
+    strikeSpacing: 0
+  - colours: 2
+    strikeSpacing: 0.35
+  - colours: 3
+    strikeSpacing: 0.35
+  - colours: 5
+    strikeSpacing: 0.35
+  leadIn: 0.5
+  glistenInterval: 0.6
+  strikeDelay: 1
+  roundGap: 1
+  glistenTime: 0.5
+  gleam:
+    size: 4
+    waist: 0.12
+    time: 0.5
+    openFraction: 0.25
+    spin: 45
+    intensity: 2
+    towardCamera: 0.6
+  gleamOffset: {x: 0, y: 0, z: 0}
+  damage: 20
+  flashIntensity: 3
+  flashTime: 0.6
+  shakeStrength: 0.5
+  shakeDuration: 0.25
+  bladeSpacing: 7
+  maxBladesPerBand: 40
+  bladeIntensity: 2.5
+  spear:
+    spearPrefab: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+    flightDistance: 14
+    flightTime: 0.18
+    leanAngle: 10
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 0.6
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 1
+    damageRadius: 0.7
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 1, g: 0.62, b: 0.08, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.15
+    shakeDuration: 0.15

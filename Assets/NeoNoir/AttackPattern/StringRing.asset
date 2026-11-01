@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51bf26f8279d0624c8aa8bc3efbddba1, type: 3}
+  m_Name: StringRing
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.StringRingPattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  glideSpeed: 14
+  maxGlideTime: 4
+  spacing: 5
+  stepDelay: 0.03
+  maxPerFrame: 30
+  spiralArms: 1
+  spiralGap: 5
+  trinityOffset: 10
+  trinityRadius: 10
+  fillOutsideTrinity: 1
+  fillSpacing: 5
+  endWithWall: 1
+  circles:
+    tracking: 0
+    spawnDistance: {x: 3, y: 5}
+    radius: 2.5
+    fillTime: 1
+    acceleration: 16
+    maxSpeed: 7
+    drag: 1.5
+    circleMaterial: {fileID: 0}
+    circleColour: {r: 1, g: 0.12, b: 0.12, a: 0.7}
+    circleOutline: 0.1
+    circleLift: 0.1
+    count: 3
+    stagger: 0.03
+    flightTime: 0.12
+    elevation: {x: 75, y: 90}
+    length: 30
+    stringMaterial: {fileID: 0}
+    coreColour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    edgeColour: {r: 2.5, g: 2.5, b: 2.5, a: 1}
+    coreWidth: 0.05
+    width: 0.11
+    lingerTime: 0.1
+    lingerFade: 0
+    latchTime: 0.12
+    recoilTime: 0.6
+    recoilWobble: 0.8
+    recoilLength: 12
+    recoilSegments: 6
+    impact:
+      ringRadius: 0.7
+      ringWidth: 0.15
+      ringTime: 0.25
+      floorOffset: 0.1
+      ringIntensity: 3
+      debrisCount: 2
+      debrisSize: 0.15
+      debrisUpSpeed: {x: 3, y: 5}
+      debrisOutSpeed: {x: 1, y: 3}
+      debrisGravity: 25
+      debrisTime: 0.4
+      debrisIntensity: 1.5
+    impactMaterial: {fileID: 0}
+    impactBurst:
+      flashSize: 0.45
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 6}
+      sparkLife: 0.2
+      colour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    impactShake: 0.15
+    impactShakeTime: 0.2
+    damage: 15

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3482e166551dbc4fad999d80d58ad44, type: 3}
+  m_Name: Encore
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.EncorePattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  presentPrefab: {fileID: 1592045332565608718, guid: 68cdd47d804ded740870f5a599d56fb1, type: 3}
+  duration: 6
+  presentsPerSecond: 3
+  dropHeight: 15
+  dropSpeed: 25
+  chainReactions: 0
+  blastRadius: 6
+  fuseTime: 0.6
+  aimedShare: 0.35
+  aimRadius: 3

@@ -509,14 +509,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1673411963767293730}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.023224616, y: 0.004505401, z: -0.5092686, w: 0.8602824}
-  m_LocalPosition: {x: -0.00000011920929, y: 1.1591792, z: 0.000000024214387}
+  m_LocalRotation: {x: 0.02212047, y: 0.01723602, z: -0.81072265, w: 0.5847584}
+  m_LocalPosition: {x: -0.000024594367, y: 1.1591654, z: 0.000006318092}
   m_LocalScale: {x: 1.0000001, y: 1.0000001, z: 1.0000001}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9092636760002431962}
   m_Father: {fileID: 2427509757870949051}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 3.085, y: -0.901, z: -108.42}
 --- !u!1 &1764681399281974370
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,14 +744,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3654803235555337899}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5275307, y: 0.49685562, z: -0.48981228, w: -0.48469564}
-  m_LocalPosition: {x: -0.3986485, y: -0.09230761, z: -0.90890425}
+  m_LocalRotation: {x: 0.64488286, y: 0.33452067, z: -0.6122722, w: -0.31200135}
+  m_LocalPosition: {x: -0.3986484, y: -0.09230238, z: -0.9088916}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4600279280329375866}
   m_Father: {fileID: 7118663132371836880}
-  m_LocalEulerAnglesHint: {x: -1.413, y: -92.885, z: 92.087}
+  m_LocalEulerAnglesHint: {x: 0.414, y: -93.185, z: 125.557}
 --- !u!1 &3959282284999477739
 GameObject:
   m_ObjectHideFlags: 0
@@ -1186,14 +1186,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6466277350054671223}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.4146555, y: 0.59590644, z: -0.40839013, w: 0.5533299}
-  m_LocalPosition: {x: 0.3986485, y: -0.09230761, z: -0.90890425}
+  m_LocalRotation: {x: -0.30169916, y: 0.6248369, z: -0.3854501, w: 0.6082637}
+  m_LocalPosition: {x: 0.39864787, y: -0.09230757, z: -0.90889776}
   m_LocalScale: {x: 1, y: 1, z: 1.0000001}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 81052908880544197}
   m_Father: {fileID: 7118663132371836880}
-  m_LocalEulerAnglesHint: {x: 1.595, y: 93.102, z: -71.175}
+  m_LocalEulerAnglesHint: {x: 6.584, y: 87.859, z: -58.381}
 --- !u!1 &6549930519872402376
 GameObject:
   m_ObjectHideFlags: 0
@@ -2091,7 +2091,7 @@ Transform:
   m_GameObject: {fileID: 6738890541563865989}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: -0, y: 0, z: -0.92448777}
+  m_LocalPosition: {x: 0, y: 0, z: -0.92448777}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2430,6 +2430,8 @@ GameObject:
   - component: {fileID: 2933485765929065401}
   - component: {fileID: 8962780786267334093}
   - component: {fileID: 4417096153206650121}
+  - component: {fileID: 6858377690676360400}
+  - component: {fileID: 293115136136037794}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -2598,6 +2600,8 @@ MonoBehaviour:
   dashCooldown: 0.4
   steerDuringDash: 0
   externalDamping: 5.5
+  maxGroundAngle: 60
+  riseAllowance: 4
 --- !u!114 &2933485765929065401
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2667,9 +2671,94 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.BladeArsenal
   loadout: {fileID: 11400000, guid: 597ffd8e5abcabd4394c1349625f3391, type: 2}
+  allBlades:
+  - {fileID: 11400000, guid: 149208d6c0e3a9f4985dbc1b60dfd560, type: 2}
+  - {fileID: 11400000, guid: f8e2a86010132b94e886076efc42cddb, type: 2}
+  - {fileID: 11400000, guid: cf0e79b4c4053784ebf2dc1c0b53669f, type: 2}
+  - {fileID: 11400000, guid: 5dc0fa1ccd6e4d7a9b2b54a575b7c9ba, type: 2}
+  - {fileID: 11400000, guid: 3a2a01e353ff22340b8de05852bdf090, type: 2}
+  - {fileID: 11400000, guid: 8f8e469f5c0c7c14aae8710026916630, type: 2}
+  - {fileID: 11400000, guid: c400266a961c40fe98cd46a8a1ff20d0, type: 2}
+  unarmed: 0
   fadeOutTime: 0.25
   fadeInTime: 0.15
   secondaryOrbitPhase: 180
+--- !u!114 &4417096153206650121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7956613072368519815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b70832e456b49c1b6fd0ea1671ccb36, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.PlayerHealth
+  maxHealth: 100
+--- !u!95 &6858377690676360400
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7956613072368519815}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 4838fd7b957f52f4192449587bbb2927, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &293115136136037794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7956613072368519815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f691a0dfb15c7754bb0d361b30625782, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.PlayerDeath
+  settings:
+    dieTrigger: Death
+    fallTime: 1.5
+    blood:
+      droplets: 30
+      spread: 50
+      minSpeed: 4
+      maxSpeed: 13
+      drag: 7
+      lifetime: 0.6
+      size: 0.16
+      stretch: 0.05
+      outlineWidth: 0.04
+      lift: 4
+    bloodMaterial: {fileID: 0}
+    bloodColour: {r: 0.8, g: 0.05, b: 0.08, a: 1}
+    bloodHeight: 1
+    circleMaterial: {fileID: 0}
+    circleColour: {r: 1, g: 1, b: 1, a: 1}
+    circleRadius: 2.5
+    circleOpenTime: 0.5
+    circleCloseTime: 0.35
+    sinkDepth: 2.5
+    sinkTime: 1.5
+    riseTime: 1.5
+    revealTime: 1.2
+    afterworldScene: Afterworld
+    blackBeforeLoad: 0.6
+    blackAfterLoad: 0.6
 --- !u!1 &8362438512245128069
 GameObject:
   m_ObjectHideFlags: 0
@@ -3348,16 +3437,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4837001346575807618, guid: baae3e23a95c20e4c93ef2c7f240b3e1, type: 3}
   m_PrefabInstance: {fileID: 4161540513428343862}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &4417096153206650121
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7956613072368519815}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b70832e456b49c1b6fd0ea1671ccb36, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.PlayerHealth
-  maxHealth: 100

@@ -223,7 +223,7 @@ namespace LightAndShadow
 
             barrier.Parried += OnParried;
             barrier.Finished += OnBarrierFinished;
-            barrier.Play(Owner, centreOffset, BarrierRadius(), parry);
+            barrier.Play(Owner, centreOffset, BarrierRadius(), LeveledCopy(parry, p => p.guardTime += ParryTimePerLevel * (Level - 1)));
         }
 
         /// <summary>The set radius, or one fitted round the player's collider.</summary>
@@ -300,6 +300,11 @@ namespace LightAndShadow
         {
             Vector3 ownerPosition = Owner.position;
             bool held = PrimaryHeld;
+
+            // The target and the cut both keep up with a running player.
+            Vector3 carry = ChaseFrame.Step(deltaTime);
+            attackPoint += carry;
+            cutPosition += carry;
 
             releaseRemaining = held ? releaseDelay : Mathf.Max(0f, releaseRemaining - deltaTime);
             bool attacking = held || releaseRemaining > 0f;
@@ -424,6 +429,15 @@ namespace LightAndShadow
         }
 
         private float AttacksPerSecond => attacksPerSecond * AttackSpeedMultiplier;
+
+        /// <summary>Each level makes her attacks 1.25 times as fast.</summary>
+        protected override float AttackSpeedPerLevel => 1.25f;
+
+        /// <summary>Each level makes her strikes deal 1.25 times the damage.</summary>
+        public override float HitboxDamageScale => PerLevel(1.25f);
+
+        /// <summary>Seconds the parry lasts longer for each level past 1.</summary>
+        private const float ParryTimePerLevel = 0.25f;
 
         private void Simulate(Vector3 ownerPosition, bool attacking, float deltaTime)
         {

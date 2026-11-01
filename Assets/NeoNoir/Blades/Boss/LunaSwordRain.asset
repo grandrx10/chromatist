@@ -1,0 +1,143 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fa5d7cdf1d5c7549918d3eeb71602a4, type: 3}
+  m_Name: LunaSwordRain
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LunaSwordRainPattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  circleRadius: 2.5
+  warnTime: 0.5
+  damage: 10
+  warningColour: {r: 1, g: 0.75, b: 0.2, a: 1}
+  warningOutline: 0.1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  spearsPerCircle: 1
+  spearSpread: 0.75
+  spear:
+    spearPrefab: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+    flightDistance: 14
+    flightTime: 0.18
+    leanAngle: 30
+    leanJitter: 8
+    headingJitter: 20
+    embedDepth: 0.3
+    lingerTime: 1
+    sinkTime: 0.6
+    sinkDepth: 4
+    damage: 10
+    damageRadius: 0.7
+    impactMaterial: {fileID: 0}
+    impactColour: {r: 1, g: 0.62, b: 0.08, a: 1}
+    impactEdgeWidth: 0.12
+    impactEdgeColour: {r: 2, g: 2, b: 2, a: 1}
+    landingBurst:
+      ringRadius: 2.2
+      ringWidth: 0.45
+      ringTime: 0.3
+      floorOffset: 0.05
+      ringIntensity: 3
+      debrisCount: 6
+      debrisSize: 0.3
+      debrisUpSpeed: {x: 5, y: 9}
+      debrisOutSpeed: {x: 2, y: 5}
+      debrisGravity: 25
+      debrisTime: 0.6
+      debrisIntensity: 1.5
+    shakeStrength: 0.15
+    shakeDuration: 0.15
+  circleBurst:
+    ringRadius: 3
+    ringWidth: 0.5
+    ringTime: 0.3
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 6
+    debrisSize: 0.3
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 2, y: 5}
+    debrisGravity: 25
+    debrisTime: 0.6
+    debrisIntensity: 1.5
+  shakeStrength: 0.2
+  shakeDuration: 0.15
+  centreTolerance: 1
+  leapHeight: 8
+  leapTime: 0.9
+  leapSpin: 360
+  stabTime: 0.15
+  sinkDepth: 0.5
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  landingHold: 0.5
+  landingRadius: 10
+  landingOutline: 0.2
+  landingWarningColour: {r: 1, g: 1, b: 1, a: 1}
+  landingWarningHeight: 0.12
+  landingDamage: 25
+  landingMaterial: {fileID: 0}
+  landing:
+    ringRadius: 12
+    ringWidth: 1.5
+    ringTime: 0.5
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 24
+    debrisSize: 0.6
+    debrisUpSpeed: {x: 7, y: 12}
+    debrisOutSpeed: {x: 5, y: 12}
+    debrisGravity: 25
+    debrisTime: 0.9
+    debrisIntensity: 1.5
+  blastRadius: 10
+  blast:
+    growTime: 0.18
+    fadeTime: 0.5
+    colour: {r: 2.5, g: 2.5, b: 3, a: 1}
+    outlineWidth: 0.3
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  landingShake: 1.2
+  landingShakeDuration: 0.6
+  circlesPerRing: 12
+  startRadius: 50
+  endRadius: 15
+  ringStep: 5
+  ringInterval: 0.1
+  ringTurn: 15
+  duration: 8
+  reversePause: 1.6
+  circleJitter: 2
+  saturation: 1
+  swordIntensity: 2.5
+  daggerPrefab: {fileID: 3504340028091973037, guid: 9f7e170824c90924cb6bb62eb6d6027b, type: 3}
+  daggersPerThrow: 4
+  throwInterval: 0.12
+  throwTurn: 5
+  daggerReach: 10
+  daggerOutTime: 0.8
+  daggerSpinTime: 0.2
+  daggerHeight: 0.5
+  daggerSpawnDistance: 0.8
+  daggerHueStep: 0.015
+  daggerIntensity: 2

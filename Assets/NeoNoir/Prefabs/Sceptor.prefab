@@ -40201,7 +40201,7 @@ MonoBehaviour:
   - name: Phase 1
     startsAtHealthPercent: 100
     patterns:
-    - {fileID: 11400000, guid: 0963bb4ea3ec61e47b9a63b91fb784cb, type: 2}
+    - {fileID: 11400000, guid: ca2ab94f43852de40bebb5170b976f2f, type: 2}
   idleAnimation: sceptorIdle
   animationBlend: 0.1
   speedParameter: Speed

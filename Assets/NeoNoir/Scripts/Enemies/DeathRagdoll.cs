@@ -5,7 +5,8 @@ namespace LightAndShadow
 {
     /// <summary>
     /// Swaps the enemy for a ragdoll the moment it dies, in exactly the pose
-    /// it died in, and knocks it away from the player.
+    /// it died in, and knocks it away from the player -- or from a blast,
+    /// if one killed it (see <see cref="BlastFrom"/>).
     /// </summary>
     /// <remarks>
     /// The ragdoll is its own prefab: a copy of the enemy's model with
@@ -86,6 +87,27 @@ namespace LightAndShadow
         // Damaged is raised just before Died, so this holds the killing blow.
         private float lastDamage;
 
+        // Set just before a blast's blow lands, and only for that blow.
+        private Vector3? blastOrigin;
+
+        /// <summary>
+        /// Says the blow about to land comes from a blast at
+        /// <paramref name="origin"/>: if it kills, the body is thrown away
+        /// from there rather than from the player. Forgotten straight after
+        /// that blow, kill or not; call <see cref="ClearBlast"/> once it has
+        /// landed.
+        /// </summary>
+        public void BlastFrom(Vector3 origin)
+        {
+            blastOrigin = origin;
+        }
+
+        /// <summary>Forgets a blast set with <see cref="BlastFrom"/>.</summary>
+        public void ClearBlast()
+        {
+            blastOrigin = null;
+        }
+
         private void Awake()
         {
             health = GetComponent<EnemyHealth>();
@@ -165,9 +187,13 @@ namespace LightAndShadow
         {
             Vector3 velocity = inheritVelocity && enemy != null ? enemy.Velocity : Vector3.zero;
 
-            if (enemy != null && enemy.HasTarget)
+            Vector3? from = blastOrigin.HasValue ? blastOrigin
+                : enemy != null && enemy.HasTarget ? enemy.Target.position
+                : (Vector3?)null;
+
+            if (from.HasValue)
             {
-                Vector3 away = transform.position - enemy.Target.position;
+                Vector3 away = transform.position - from.Value;
                 away.y = 0f;
 
                 if (away.sqrMagnitude > 0.0001f)

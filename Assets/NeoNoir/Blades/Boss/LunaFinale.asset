@@ -1,0 +1,153 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74b4f70c182a912408fa73a19a6fc49d, type: 3}
+  m_Name: LunaFinale
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.LunaFinalePattern
+  delayAfter: 0
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  gatherTime: 1.5
+  tipHeight: 3
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  chargeTime: 2.5
+  ballRadius: 0.9
+  ballColour: {r: 4, g: 4, b: 4, a: 1}
+  streakRate: {x: 15, y: 60}
+  blastStreakRate: 200
+  streaks:
+    reach: 7
+    travelTime: 0.4
+    length: 2.5
+    width: 0.06
+    saturation: 0
+    intensity: 4
+  beam:
+    length: 30
+    radius: 0.7
+    wallMask:
+      serializedVersion: 2
+      m_Bits: 1
+    growTime: 0.2
+    shrinkTime: 0.3
+    damagePerSecond: 0
+    tickInterval: 0.25
+    singleHit: 0
+    hitDamage: 20
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    breaksGiftBoxes: 0
+    colour: {r: 4, g: 4, b: 4, a: 1}
+    flash:
+      flashSize: 2.5
+      flashTime: 0.2
+      sparkCount: 12
+      sparkSize: 0.35
+      sparkSpeed: {x: 4, y: 9}
+      sparkLife: 0.35
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparks:
+      flashSize: 1.2
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.3
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparkInterval: 0.1
+    boltCount: 5
+    boltColour: {r: 0, g: 0, b: 0, a: 1}
+    boltWidth: 0.12
+    boltReach: {x: 0.9, y: 1.6}
+    boltStep: 0.8
+    flicker: 0.04
+  dustBuildTime: 5
+  dustRate: {x: 8, y: 60}
+  dustSize: {x: 0.4, y: 1}
+  dustSpeed: {x: 6, y: 40}
+  dust:
+    spacing: 0.4
+    puffsPerStep: 2
+    minSpeed: 3
+    size: 0.35
+    lifetime: 1.2
+    rise: 2
+    drag: 0.15
+    spread: 1.2
+    colour: {r: 1, g: 1, b: 1, a: 1}
+    material: {fileID: 0}
+  rumble: 0.35
+  hole:
+    maxRadius: 25
+    growTime: 15
+    coreFraction: 0.45
+    floorOffset: 0.05
+    coreColour: {r: 4, g: 4, b: 4, a: 1}
+    armCount: 12
+    armTwist: 120
+    spinSpeed: 90
+    saturation: 1
+    rainbowIntensity: 2.5
+    lensScale: 2.5
+    lensPull: 0.35
+    lensSwirl: 100
+    lensRipple: 12
+    lensRipples: 4
+    lensRippleSpeed: 4
+    lensPulse: 0.2
+    lensChroma: 0.08
+    damagePerSecond: 20
+    tickInterval: 0.25
+    pullStrength: 12
+    pullRange: 60
+  holdAtFull: 1.5
+  bladeModel: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+  bladeInterval: 0.08
+  bladeDistance: {x: 30, y: 50}
+  bladeSaturation: 1
+  blade:
+    dropHeight: 25
+    dropTime: 0.6
+    sinkDepth: 0.6
+    inwardSpeed: 2.5
+    inwardSpeedNearCentre: 8
+    swirlSpeed: 7
+    dragEaseIn: 1
+    swallowTime: 0.25
+    touchRadius: 1.2
+    damage: 10
+    blastRadius: 3
+    blast:
+      growTime: 0.12
+      fadeTime: 0.35
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      outlineWidth: 0.2
+      outlineColour: {r: 2, g: 2, b: 2, a: 1}
+      material: {fileID: 0}
+    intensity: 2.5
+    trailTime: 1.5
+    trailWidth: 0.6
+    trailHeight: 0.08
+  whiteOutTime: 0.8
+  whiteHoldTime: 1
+  fadeTime: 1.5
+  nextScene: 

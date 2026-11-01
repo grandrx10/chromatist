@@ -314,6 +314,9 @@ namespace LightAndShadow
             float deltaTime = Time.deltaTime;
             age += deltaTime;
 
+            // Rides along with a running player.
+            transform.position += ChaseFrame.Step(deltaTime);
+
             if (age >= settings.duration)
             {
                 Destroy(gameObject);

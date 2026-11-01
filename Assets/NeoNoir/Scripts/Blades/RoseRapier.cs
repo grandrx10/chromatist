@@ -28,6 +28,8 @@ namespace LightAndShadow
     /// Secondary. A fixed-distance, unsteerable dash through
     /// <see cref="PlayerMotor.DashFixed"/>. The trail damages along the swept
     /// path while the dash runs, then lingers as a damaging line for a moment.
+    /// While the dash runs, the linger excluded, the player parries
+    /// projectiles as Luna's barrier does, with nothing drawn.
     /// The ability counts as finished only once the trail is gone. The dash
     /// also sheds <see cref="RosePetal"/>s along its path, which drift for a
     /// while after the ability ends and then dissolve on their own.
@@ -130,6 +132,11 @@ namespace LightAndShadow
         private float trailLinger = 0.25f;
 
         [SerializeField]
+        [Tooltip("Gap between the player's collider and the unseen shell that parries projectiles during the dash.")]
+        [Min(0f)]
+        private float dashParryPadding = 0.3f;
+
+        [SerializeField]
         [Tooltip("Thickness of the trail's line of light.")]
         [Min(0.01f)]
         private float trailWidth = 0.35f;
@@ -224,6 +231,11 @@ namespace LightAndShadow
 
         // Secondary state.
         private bool dashing;
+        private ParryBarrier dashParry;
+
+        // Seconds the dash's parry still has to run after the dash itself
+        // ends: the extra an upgraded Rose guards for.
+        private float parryOverrun;
         private bool lingering;
         private float lingerRemaining;
         private float dashBlend;
@@ -232,11 +244,42 @@ namespace LightAndShadow
         private Vector3 trailEnd;
         private Vector3 lastTrailPoint;
         private GameObject trailObject;
+        private TrailRenderer dashTrail;
+
+        // Mid-run the player is not dashed: the cutting line runs out on its
+        // own from where they stood, riding along with them.
+        private bool lineOnly;
+        private float lineClock;
 
         // Distance still to travel along the dash before the next petal.
         private float petalGap;
 
         private float AttacksPerSecond => attacksPerSecond * AttackSpeedMultiplier;
+
+        /// <summary>Each level makes her slashes come 1.25 times as fast.</summary>
+        protected override float AttackSpeedPerLevel => 1.25f;
+
+        /// <summary>One slash's damage at this level.</summary>
+        private float SlashDamage => slash.damage * LevelScale;
+
+        /// <summary>What each strike of a mark's burst deals: one level 1 slash's damage, times 1.5 for each level past 1.</summary>
+        private float MarkStrikeDamage => slash.damage * PerLevel(1.5f);
+
+        /// <summary>The dash trail's damage. Levels do not raise it.</summary>
+        private float DashDamage => dashDamage;
+
+        /// <summary>Extra slashes in the dash's flurry for each level past 1.</summary>
+        private const int DashStrikesPerLevel = 2;
+
+        /// <summary>
+        /// The dash's flurry at this level: <see cref="DashStrikesPerLevel"/>
+        /// more strikes per level past 1, each still dealing one level 1
+        /// slash's damage.
+        /// </summary>
+        private SlashFlurry.Settings DashFlurry => LeveledCopy(dashFlurry, f => f.strikes += DashStrikesPerLevel * (Level - 1));
+
+        /// <summary>The marks at this level: one hit fewer to burst for each level past 1, never fewer than one.</summary>
+        private RoseMark.Settings Marks => LeveledCopy(marks, m => m.hitsToBurst = Mathf.Max(1, m.hitsToBurst - (Level - 1)));
 
         private float FlickLength => Mathf.Min(flickDuration, 0.8f / AttacksPerSecond);
 
@@ -391,7 +434,8 @@ namespace LightAndShadow
             float dashWeight = Ease(dashBlend);
             if (dashWeight > 0f)
             {
-                LeadPose(ownerPosition, out Vector3 leadPosition, out Quaternion leadRotation);
+                // Mid-run the rapier leads the line out instead of the player.
+                LeadPose(lineOnly ? DashFront() : ownerPosition, out Vector3 leadPosition, out Quaternion leadRotation);
                 position = Vector3.Lerp(position, leadPosition, dashWeight);
                 rotation = Quaternion.Slerp(rotation, leadRotation, dashWeight);
             }
@@ -466,7 +510,7 @@ namespace LightAndShadow
             // across the cursor: from the right it curves left, and vice versa.
             Vector3 heading = Quaternion.AngleAxis(side * launchAngle, Vector3.up) * aim;
 
-            RapierSlash spawned = RapierSlash.Spawn(origin, heading, cursorPoint, slash, ResolvedSlashMaterial, OnSlashHit, RoseColour, this);
+            RapierSlash spawned = RapierSlash.Spawn(origin, heading, cursorPoint, Leveled(slash, (s, k) => s.damage *= k), ResolvedSlashMaterial, OnSlashHit, RoseColour, this);
             Tint(spawned.GetComponent<TrailRenderer>());
         }
 
@@ -474,7 +518,7 @@ namespace LightAndShadow
         {
             if (markByEnemy.TryGetValue(enemy, out RoseMark mark) && mark != null)
             {
-                mark.RegisterHit(arrivalPoint, slash.damage);
+                mark.RegisterHit(arrivalPoint, MarkStrikeDamage);
             }
         }
 
@@ -487,7 +531,7 @@ namespace LightAndShadow
         /// <summary>Each enemy is reported once per dash, so each gets one flurry.</summary>
         private void OnDashHit(EnemyHealth enemy, Vector3 arrivalPoint)
         {
-            SlashFlurry.Play(enemy, slash.damage, dashFlurry, RoseColour, this);
+            SlashFlurry.Play(enemy, slash.damage, DashFlurry, RoseColour, this);
         }
 
         /// <summary>
@@ -498,14 +542,14 @@ namespace LightAndShadow
         {
             foreach (EnemyHealth enemy in EnemyHealth.Active)
             {
-                if (enemy.IsDead)
+                if (enemy.IsDead || enemy.Unmarked)
                 {
                     continue;
                 }
 
                 if (!markByEnemy.TryGetValue(enemy, out RoseMark mark) || mark == null)
                 {
-                    markByEnemy[enemy] = RoseMark.Create(enemy, marks, ResolvedPetalMaterial, this, slash.damage);
+                    markByEnemy[enemy] = RoseMark.Create(enemy, Marks, ResolvedPetalMaterial, this, MarkStrikeDamage);
                 }
             }
 
@@ -635,18 +679,25 @@ namespace LightAndShadow
                 return;
             }
 
-            // The ability wins over a normal dash already in progress.
-            if (Motor.IsDashing)
-            {
-                Motor.CancelDash();
-            }
-
             dashDirection = direction.normalized;
-            Motor.DashFixed(dashDirection, dashDistance, dashDuration);
+            lineOnly = ChaseFrame.Active;
+            lineClock = 0f;
+
+            if (!lineOnly)
+            {
+                // The ability wins over a normal dash already in progress.
+                if (Motor.IsDashing)
+                {
+                    Motor.CancelDash();
+                }
+
+                Motor.DashFixed(dashDirection, dashDistance, dashDuration);
+            }
 
             dashing = true;
             lingering = false;
             dashHit.Clear();
+            SetGuarding(true);
 
             trailStart = MiddlePoint();
             lastTrailPoint = trailStart;
@@ -656,6 +707,7 @@ namespace LightAndShadow
             trailObject.transform.position = trailStart;
 
             TrailRenderer trail = trailObject.AddComponent<TrailRenderer>();
+            dashTrail = trail;
             trail.time = trailLinger + dashDuration;
             trail.widthMultiplier = trailWidth;
             trail.widthCurve = RapierSlash.PointedWidth(0.2f);
@@ -674,14 +726,20 @@ namespace LightAndShadow
 
         private void TickDash(float deltaTime)
         {
+            if (lineOnly && (dashing || lingering))
+            {
+                lineClock += deltaTime;
+                RideLine(ChaseFrame.Step(deltaTime));
+            }
+
             if (dashing)
             {
                 // Snap to the front almost at once: the whole dash is a tenth
                 // of a second, and a rapier still catching up would trail it.
                 dashBlend = Mathf.MoveTowards(dashBlend, 1f, deltaTime / 0.04f);
 
-                Vector3 point = MiddlePoint();
-                BladeDamage.Sweep(lastTrailPoint, point, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
+                Vector3 point = DashFront();
+                BladeDamage.Sweep(lastTrailPoint, point, trailRadius, DashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
                                   source: this);
                 ShedPetals(lastTrailPoint, point);
                 lastTrailPoint = point;
@@ -691,9 +749,20 @@ namespace LightAndShadow
                     trailObject.transform.position = point;
                 }
 
-                if (!Motor.IsDashing)
+                bool over = lineOnly ? lineClock >= dashDuration : !Motor.IsDashing;
+
+                if (over)
                 {
                     dashing = false;
+
+                    // The parry lasts the dash, times the level's scale.
+                    parryOverrun = dashDuration * (LevelScale - 1f);
+
+                    if (parryOverrun <= 0f)
+                    {
+                        SetGuarding(false);
+                    }
+
                     lingering = true;
                     lingerRemaining = trailLinger;
                     trailEnd = point;
@@ -710,6 +779,16 @@ namespace LightAndShadow
 
             dashBlend = StepEngage(dashBlend, false, deltaTime);
 
+            if (dashParry != null)
+            {
+                parryOverrun -= deltaTime;
+
+                if (parryOverrun <= 0f)
+                {
+                    SetGuarding(false);
+                }
+            }
+
             if (!lingering)
             {
                 return;
@@ -717,7 +796,7 @@ namespace LightAndShadow
 
             // The line the player just cut still hurts anything that steps
             // into it, until it fades.
-            BladeDamage.Sweep(trailStart, trailEnd, trailRadius, dashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
+            BladeDamage.Sweep(trailStart, trailEnd, trailRadius, DashDamage, dashDirection, dashHit, OnDashHit, RoseColour,
                               source: this);
 
             lingerRemaining -= deltaTime;
@@ -755,12 +834,92 @@ namespace LightAndShadow
             petalGap = along - length;
         }
 
+        /// <summary>
+        /// While the dash runs the player parries: an unseen
+        /// <see cref="ParryBarrier"/> round them catches projectiles as
+        /// Luna's does, but with no shell or sparks drawn. Anything that
+        /// cannot be parried still hurts.
+        /// </summary>
+        private void SetGuarding(bool guarding)
+        {
+            if (dashParry != null)
+            {
+                Destroy(dashParry.gameObject);
+                dashParry = null;
+            }
+
+            if (guarding && Owner != null)
+            {
+                Vector3 centreOffset = Vector3.up * (OwnerMiddleHeight() - Owner.position.y);
+
+                Collider body = OwnerCollider;
+                Vector3 extents = body != null ? body.bounds.extents : Vector3.one * 0.5f;
+                float radius = Mathf.Max(extents.x, extents.y, extents.z) + dashParryPadding;
+
+                dashParry = new GameObject("RoseDashParry").AddComponent<ParryBarrier>();
+                dashParry.Play(Owner, centreOffset, radius, DashParrySettings);
+            }
+        }
+
+        /// <summary>
+        /// Guards far longer than any dash, with nothing to fade: the dash
+        /// ending is what takes it down.
+        /// </summary>
+        private static readonly ParryBarrier.Settings DashParrySettings = new ParryBarrier.Settings
+        {
+            guardTime = 10f,
+            appearTime = 0f,
+            fadeTime = 0f,
+            hitFlashTime = 0f,
+        };
+
         private void LeadPose(Vector3 ownerPosition, out Vector3 position, out Quaternion rotation)
         {
             position = ownerPosition + dashDirection * leadDistance;
             position.y = HoldHeight();
             Vector3 tip = Tilted(dashDirection);
             rotation = TipRotation(tip, -dashDirection);
+        }
+
+        /// <summary>
+        /// The front of the cutting line: the player, while dashing them; the
+        /// line's own head running out from where they stood, mid-run.
+        /// </summary>
+        private Vector3 DashFront()
+        {
+            if (!lineOnly)
+            {
+                return MiddlePoint();
+            }
+
+            float t = dashDuration > 0f ? Mathf.Clamp01(lineClock / dashDuration) : 1f;
+            return trailStart + dashDirection * (dashDistance * t);
+        }
+
+        /// <summary>Moves the whole line, drawn and still to come, on by <paramref name="carry"/>, keeping up with a running player.</summary>
+        private void RideLine(Vector3 carry)
+        {
+            if (carry == Vector3.zero)
+            {
+                return;
+            }
+
+            trailStart += carry;
+            trailEnd += carry;
+            lastTrailPoint += carry;
+
+            if (dashTrail == null)
+            {
+                return;
+            }
+
+            // Its head too, or the trail would stretch back to where it was.
+            dashTrail.transform.position += carry;
+
+            for (int i = 0; i < dashTrail.positionCount; i++)
+            {
+                dashTrail.SetPosition(i, dashTrail.GetPosition(i) + carry);
+            }
         }
 
         private Vector3 MiddlePoint()
@@ -793,6 +952,8 @@ namespace LightAndShadow
                 lingering = false;
                 FinishSecondary();
             }
+
+            SetGuarding(false);
 
             if (trailObject != null)
             {

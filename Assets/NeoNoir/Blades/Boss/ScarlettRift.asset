@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a042878dde82d634abd3ad3c67d92820, type: 3}
+  m_Name: ScarlettRift
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.ScarlettRiftPattern
+  delayAfter: 0
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  leapHeight: 8
+  leapTime: 0.9
+  leapSpin: 360
+  landingSink: 0.3
+  landingRadius: 4
+  landingOutline: 0.12
+  landingDamage: 25
+  warningColour: {r: 1, g: 0.1, b: 0.15, a: 1}
+  warningHeight: 0.12
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  landingMaterial: {fileID: 0}
+  landing:
+    ringRadius: 6
+    ringWidth: 1
+    ringTime: 0.45
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 14
+    debrisSize: 0.5
+    debrisUpSpeed: {x: 6, y: 10}
+    debrisOutSpeed: {x: 3, y: 7}
+    debrisGravity: 25
+    debrisTime: 0.8
+    debrisIntensity: 1.5
+  blastRadius: 3.5
+  blast:
+    growTime: 0.12
+    fadeTime: 0.35
+    colour: {r: 3, g: 0.2, b: 0.3, a: 1}
+    outlineWidth: 0.15
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  landingShake: 0.8
+  landingShakeDuration: 0.4
+  scarlett: {fileID: 11400000, guid: c400266a961c40fe98cd46a8a1ff20d0, type: 2}
+  riftInterval: 10
+  riftHeal: 100
+  riftHeight: 1
+  fallbackLength: 40
+  rift:
+    damage: 20
+    span: 40
+    speed: 60
+    thickness: 5
+    bow: 0.5
+    kinks: 4
+    kinkSize: 0.6
+    raggedness: 0.6
+    splinters: 16
+    splinterLength: 1.8
+    hold: 0.3
+    fadeTime: 0.7
+    outlineWidth: 0.06
+    lift: 4
+  spawnCount: 3
+  units:
+  - prefab: {fileID: 6360503928981304619, guid: f46ac4d60ea450345b6dbbbe31263a7a, type: 3}
+    weight: 1
+  - prefab: {fileID: 8204702337747212392, guid: 01a8fb4dc3da7fd49a64b9282c7d5882, type: 3}
+    weight: 1
+  - prefab: {fileID: 7766919485240205834, guid: adc5b1c19c303614587524326f18c7e0, type: 3}
+    weight: 1
+  - prefab: {fileID: 1193655583618746556, guid: 4ca1128d72f73c8418d8d256f674a71a, type: 3}
+    weight: 1
+  - prefab: {fileID: 6360503928981304619, guid: 622ecf19dcc02094395115ca384bc22a, type: 3}
+    weight: 1
+  riseTime: 1
+  spawnClearance: 0.5
+  dismissFadeTime: 1

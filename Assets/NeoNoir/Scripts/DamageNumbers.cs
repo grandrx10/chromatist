@@ -241,6 +241,9 @@ namespace LightAndShadow
 
                 number.Age += deltaTime;
 
+                // Carried along with a forced run, keeping up with the enemy hit.
+                number.Start += ChaseFrame.Step(deltaTime);
+
                 if (number.Age >= lifetime)
                 {
                     number.Live = false;

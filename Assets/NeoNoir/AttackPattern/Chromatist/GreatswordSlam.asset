@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f36cdc252a2719047b2514e21492ad65, type: 3}
+  m_Name: GreatswordSlam
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.GreatswordSlamPattern
+  delayAfter: 2
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: 68e2e828389ce98498d34c0be114de86, type: 3}
+  colour: {r: 0.6, g: 0.2, b: 1, a: 1}
+  glowIntensity: 2.5
+  glowFadeTime: 0.2
+  gleam:
+    size: 1.6
+    waist: 0.12
+    time: 0.5
+    openFraction: 0.25
+    spin: 45
+    intensity: 4
+    towardCamera: 0.6
+  gleamOffset: {x: 0, y: 0, z: 0}
+  glowPeak: 2
+  glistenInterval: {x: 0.3, y: 0.07}
+  glistenSize: {x: 0.5, y: 1.1}
+  glistenSpread: 1.2
+  finalGleamSize: 2.5
+  riseTime: 0.35
+  gripHeight: 1
+  gripToPivot: 1
+  windup: {x: 10, y: 35}
+  tremble: 0.08
+  aimTime: 1
+  lockTime: 0.3
+  trackTurnSpeed: 540
+  swingTime: 0.1
+  slamAngle: 115
+  slamGripHeight: 1.5
+  slamReach: 1
+  holdTime: 0.35
+  slash:
+    damage: 20
+    length: 30
+    width: 5
+    waveTime: 0.15
+    holdTime: 0.3
+    fadeTime: 0.4
+    floorOffset: 0.05
+    hitSlashes: 3
+    hitSlashSize: 2
+    hitColour: {r: 1, g: 0.42, b: 0.02, a: 1}
+    frontTaper: 3
+    farWidth: 1
+    lineIntensity: 2
+    wallHeight: 4
+    wallWidth: 0.4
+    wallRiseTime: 0.08
+    wallFallTime: 0.35
+    wallIntensity: 4
+    arcRadius: 4.5
+    arcWidth: 1.5
+    arcTime: 0.2
+    arcIntensity: 2
+  slashMaterial: {fileID: 0}
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  shakeStrength: 0.5
+  shakeDuration: 0.3

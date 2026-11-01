@@ -1,0 +1,215 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f7bfc9c84210b74e95f6b51639291a9, type: 3}
+  m_Name: EyeCircle
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.EyeCirclePattern
+  delayAfter: 1.5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  glideSpeed: 14
+  maxGlideTime: 4
+  eyePrefab: {fileID: 1373234373006863398, guid: b6123b78a87e5ae47b699b3a14a891b3, type: 3}
+  eyeCount: 12
+  ringRadius: 10
+  hangHeight: 1.2
+  dropHeight: 12
+  lowerTime: 1
+  chargeTime: 1.2
+  muzzleDistance: 0.5
+  charge:
+    glowSize: 0.7
+    glowPulse: 0.15
+    glowPulseSpeed: 8
+    linesPerSecond: 30
+    lineDistance: 2.5
+    lineSpeed: 6
+    lineLength: 0.7
+    lineWidth: 0.05
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+  beam:
+    length: 40
+    radius: 0.35
+    wallMask:
+      serializedVersion: 2
+      m_Bits: 1
+    growTime: 0.25
+    shrinkTime: 0.3
+    damagePerSecond: 10
+    tickInterval: 0.25
+    singleHit: 0
+    hitDamage: 20
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    breaksGiftBoxes: 1
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    flash:
+      flashSize: 2.5
+      flashTime: 0.2
+      sparkCount: 12
+      sparkSize: 0.35
+      sparkSpeed: {x: 4, y: 9}
+      sparkLife: 0.35
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparks:
+      flashSize: 1.2
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.3
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    wallSparkInterval: 0.1
+    boltCount: 5
+    boltColour: {r: 0, g: 0, b: 0, a: 1}
+    boltWidth: 0.12
+    boltReach: {x: 0.9, y: 1.6}
+    boltStep: 0.8
+    flicker: 0.04
+  duration: 10
+  spinSpeed: 30
+  finale:
+    chargeTime: 1
+    trackTime: 0.7
+    muzzleDistance: 0.5
+    charge:
+      glowSize: 0.7
+      glowPulse: 0.15
+      glowPulseSpeed: 8
+      linesPerSecond: 30
+      lineDistance: 2.5
+      lineSpeed: 6
+      lineLength: 0.7
+      lineWidth: 0.05
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    startAngle: 15
+    sweepTime: 3
+    beam:
+      length: 40
+      radius: 0.35
+      wallMask:
+        serializedVersion: 2
+        m_Bits: 1
+      growTime: 0.25
+      shrinkTime: 0.3
+      damagePerSecond: 10
+      tickInterval: 0.25
+      singleHit: 1
+      hitDamage: 15
+      hitMask:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      breaksGiftBoxes: 1
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      flash:
+        flashSize: 2.5
+        flashTime: 0.2
+        sparkCount: 12
+        sparkSize: 0.35
+        sparkSpeed: {x: 4, y: 9}
+        sparkLife: 0.35
+        colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      wallSparks:
+        flashSize: 1.2
+        flashTime: 0.1
+        sparkCount: 4
+        sparkSize: 0.3
+        sparkSpeed: {x: 3, y: 7}
+        sparkLife: 0.3
+        colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      wallSparkInterval: 0.1
+      boltCount: 5
+      boltColour: {r: 0, g: 0, b: 0, a: 1}
+      boltWidth: 0.12
+      boltReach: {x: 0.9, y: 1.6}
+      boltStep: 0.8
+      flicker: 0.04
+    marks:
+      size: 0.9
+      spacing: 0.3
+      maxPerFrame: 12
+      lifetime: 2.5
+      fadeTime: 1.2
+      endScale: 0.5
+      surfaceOffset: 0.1
+      colour: {r: 1.5, g: 0.08, b: 0.05, a: 1}
+      outlineWidth: 0.1
+      outlineColour: {r: 2, g: 2, b: 2, a: 1}
+  daggerPrefab: {fileID: -929208108828705068, guid: 4e64bba88970d004589fa0f45e41c350, type: 3}
+  daggersPerThrow: 3
+  shotInterval: 0.1
+  shotTurn: 3
+  daggerHeight: 0.5
+  daggerSpawnDistance: 0.8
+  circleInterval: 2
+  circles:
+    tracking: 1
+    spawnDistance: {x: 3, y: 5}
+    radius: 2
+    fillTime: 1.5
+    acceleration: 16
+    maxSpeed: 7
+    drag: 1.5
+    circleMaterial: {fileID: 0}
+    circleColour: {r: 1, g: 0.12, b: 0.12, a: 0.7}
+    circleOutline: 0.1
+    circleLift: 0.1
+    count: 8
+    stagger: 0.03
+    flightTime: 0.12
+    elevation: {x: 75, y: 90}
+    length: 30
+    stringMaterial: {fileID: 0}
+    coreColour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    edgeColour: {r: 2.5, g: 2.5, b: 2.5, a: 1}
+    coreWidth: 0.05
+    width: 0.11
+    lingerTime: 3
+    lingerFade: 0.6
+    latchTime: 0.12
+    recoilTime: 0.6
+    recoilWobble: 0.8
+    recoilLength: 12
+    recoilSegments: 16
+    impact:
+      ringRadius: 0.7
+      ringWidth: 0.15
+      ringTime: 0.25
+      floorOffset: 0.1
+      ringIntensity: 3
+      debrisCount: 2
+      debrisSize: 0.15
+      debrisUpSpeed: {x: 3, y: 5}
+      debrisOutSpeed: {x: 1, y: 3}
+      debrisGravity: 25
+      debrisTime: 0.4
+      debrisIntensity: 1.5
+    impactMaterial: {fileID: 0}
+    impactBurst:
+      flashSize: 0.45
+      flashTime: 0.1
+      sparkCount: 4
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 6}
+      sparkLife: 0.2
+      colour: {r: 3, g: 0.15, b: 0.15, a: 1}
+    impactShake: 0.15
+    impactShakeTime: 0.2
+    damage: 15

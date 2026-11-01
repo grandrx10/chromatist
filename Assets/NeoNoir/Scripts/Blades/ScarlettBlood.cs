@@ -146,6 +146,9 @@ namespace LightAndShadow
         {
             age += Time.deltaTime;
 
+            // Carried along with a forced run, keeping up with the wound.
+            origin += ChaseFrame.Step(Time.deltaTime);
+
             if (age >= settings.lifetime)
             {
                 Destroy(gameObject);

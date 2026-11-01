@@ -30,7 +30,7 @@ namespace LightAndShadow
     /// When the arrow stops, the arrow disappears but the streak draws in
     /// after it into the point of impact, so a hit never cuts it off.
     /// </remarks>
-    public sealed class LavenderArrow : MonoBehaviour
+    public sealed class LavenderArrow : MonoBehaviour, IParryableProjectile
     {
         [Serializable]
         public sealed class Settings
@@ -81,10 +81,12 @@ namespace LightAndShadow
         private Material bubbleMaterial;
         private Color hitColour;
         private Vector3 direction;
+        private Vector3 carried;
         private float tailOffset;
         private float travelled;
 
         private bool stopped;
+        private bool held;
         private float fadeClock;
 
         private GameObject trailObject;
@@ -111,6 +113,10 @@ namespace LightAndShadow
             hitColour = colour;
             direction = flightDirection.normalized;
             travelled = 0f;
+            PlayerProjectiles.Add(this);
+
+            // Keeps the speed of a player loosing it mid-run.
+            carried = ChaseFrame.Velocity;
 
             BuildTrail(effectMaterial);
         }
@@ -133,6 +139,14 @@ namespace LightAndShadow
                     return;
                 }
 
+                UpdateTrail();
+                return;
+            }
+
+            transform.position += carried * Time.deltaTime;
+
+            if (held)
+            {
                 UpdateTrail();
                 return;
             }
@@ -165,9 +179,25 @@ namespace LightAndShadow
             UpdateTrail();
         }
 
+        public Vector3 Position => transform.position;
+
+        public void Hold()
+        {
+            held = true;
+        }
+
+        public void Deflect()
+        {
+            if (!stopped)
+            {
+                Stop();
+            }
+        }
+
         /// <summary>Ends the flight: the arrow vanishes, and its trail draws in after it.</summary>
         private void Stop()
         {
+            PlayerProjectiles.Remove(this);
             stopped = true;
             fadeClock = 0f;
 
@@ -293,6 +323,8 @@ namespace LightAndShadow
 
         private void OnDestroy()
         {
+            PlayerProjectiles.Remove(this);
+
             if (trailObject != null)
             {
                 Destroy(trailObject);
@@ -344,6 +376,11 @@ namespace LightAndShadow
         {
             // A sweep that starts already overlapping reports no point.
             Vector3 point = hit.distance > 0f ? hit.point : transform.position;
+
+            if (enemy.Parry(point))
+            {
+                return;
+            }
 
             enemy.TakeDamage(settings.damage, from: transform.position);
 

@@ -30,6 +30,8 @@ namespace LightAndShadow
     ///   Bubbles Swell up at random spots on the surface, then pop, each
     ///           leaving a ring that runs out from where it was, and goes.
     ///   Fumes   Small motes drift up off the surface, turning, and shrink away.
+    ///           Given <see cref="Settings.fumeArt"/>, they are copies of it
+    ///           instead, facing the camera and rocking as they rise.
     /// Bubbles and fumes come more often the bigger the pool is, so a pool
     /// shrinking away goes quiet with it. Like the other effects, nothing
     /// fades: everything shrinks to nothing instead, so every pixel stays
@@ -108,6 +110,12 @@ namespace LightAndShadow
 
             [Tooltip("Seconds each mote lives.")]
             [Min(0.01f)] public float fumeLife = 1.2f;
+
+            [Tooltip("Art for the motes, one picked at random for each, scaled by Fume Size and turned to face the camera. Empty uses small spinning cubes in the accent colour.")]
+            public List<GameObject> fumeArt = new List<GameObject>();
+
+            [Tooltip("Degrees an art mote rocks side to side as it rises.")]
+            [Range(0f, 45f)] public float fumeRock = 15f;
         }
 
         private sealed class Bubble
@@ -131,6 +139,9 @@ namespace LightAndShadow
             public Transform transform;
             public Vector3 velocity;
             public Vector3 spinAxis;
+            public Vector3 baseScale;
+            public bool art;
+            public float phase;
             public float age;
         }
 
@@ -160,8 +171,16 @@ namespace LightAndShadow
         private float bubbleDue;
         private float fumeDue;
 
+        private static readonly List<PotionPool> live = new List<PotionPool>();
+
+        /// <summary>Every pool on the floor right now.</summary>
+        public static IReadOnlyList<PotionPool> Live => live;
+
         /// <summary>Radius the pool hurts and is drawn at this frame.</summary>
         public float Radius { get; private set; }
+
+        /// <summary>Radius the pool spreads out to.</summary>
+        public float MaxRadius => settings.maxRadius;
 
         /// <summary>Spills a pool on the floor at <paramref name="floorPoint"/>.</summary>
         public static PotionPool Create(Vector3 floorPoint, Settings settings)
@@ -177,6 +196,7 @@ namespace LightAndShadow
         private void Begin(Settings poolSettings)
         {
             settings = poolSettings;
+            live.Add(this);
             block = new MaterialPropertyBlock();
             pieceMaterial = settings.material != null ? settings.material : FlatMaterial.DoubleSided;
 
@@ -445,13 +465,16 @@ namespace LightAndShadow
             {
                 fumeDue -= 1f;
 
-                GameObject piece = MakePrimitive("Fume", PrimitiveType.Cube);
+                GameObject prefab = PickFumeArt();
+                GameObject piece = prefab != null ? MakeArt(prefab) : MakePrimitive("Fume", PrimitiveType.Cube);
                 Vector2 spot = UnityEngine.Random.insideUnitCircle * Radius;
                 Vector2 drift = UnityEngine.Random.insideUnitCircle * 0.3f;
+                Vector3 baseScale = prefab != null ? prefab.transform.localScale * settings.fumeSize
+                                                   : Vector3.one * settings.fumeSize;
 
                 piece.transform.localPosition = new Vector3(spot.x, settings.floorOffset, spot.y);
                 piece.transform.localRotation = UnityEngine.Random.rotationUniform;
-                piece.transform.localScale = Vector3.one * settings.fumeSize;
+                piece.transform.localScale = baseScale;
 
                 fumes.Add(new Fume
                 {
@@ -460,7 +483,15 @@ namespace LightAndShadow
                                            UnityEngine.Random.Range(settings.fumeRiseSpeed.x, settings.fumeRiseSpeed.y),
                                            drift.y),
                     spinAxis = UnityEngine.Random.onUnitSphere,
+                    baseScale = baseScale,
+                    art = prefab != null,
+                    phase = UnityEngine.Random.Range(0f, Mathf.PI * 2f),
                 });
+
+                if (prefab != null)
+                {
+                    FaceCamera(fumes[fumes.Count - 1]);
+                }
             }
         }
 
@@ -481,9 +512,44 @@ namespace LightAndShadow
                 }
 
                 fume.transform.localPosition += fume.velocity * deltaTime;
-                fume.transform.Rotate(fume.spinAxis, 180f * deltaTime, Space.World);
-                fume.transform.localScale = Vector3.one * (settings.fumeSize * (1f - t));
+
+                if (fume.art)
+                {
+                    FaceCamera(fume);
+                }
+                else
+                {
+                    fume.transform.Rotate(fume.spinAxis, 180f * deltaTime, Space.World);
+                }
+
+                fume.transform.localScale = fume.baseScale * (1f - t);
             }
+        }
+
+        private GameObject PickFumeArt()
+        {
+            List<GameObject> art = settings.fumeArt;
+
+            if (art == null || art.Count == 0)
+            {
+                return null;
+            }
+
+            return art[UnityEngine.Random.Range(0, art.Count)];
+        }
+
+        /// <summary>Turns an art mote to face the camera, like a sprite, rocking side to side.</summary>
+        private void FaceCamera(Fume fume)
+        {
+            Camera camera = Camera.main;
+
+            if (camera == null)
+            {
+                return;
+            }
+
+            float rock = Mathf.Sin(fume.phase + fume.age * Mathf.PI * 2f) * settings.fumeRock;
+            fume.transform.rotation = camera.transform.rotation * Quaternion.Euler(0f, 0f, rock);
         }
 
         // ---- pieces -------------------------------------------------------
@@ -503,6 +569,26 @@ namespace LightAndShadow
             return piece;
         }
 
+        /// <summary>A copy of <paramref name="prefab"/> on the pool, in its own colours, with nothing solid on it.</summary>
+        private GameObject MakeArt(GameObject prefab)
+        {
+            GameObject piece = Instantiate(prefab, transform);
+            piece.name = "Fume";
+
+            foreach (Collider part in piece.GetComponentsInChildren<Collider>())
+            {
+                Destroy(part);
+            }
+
+            foreach (Renderer part in piece.GetComponentsInChildren<Renderer>())
+            {
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                part.receiveShadows = false;
+            }
+
+            return piece;
+        }
+
         private void Paint(Renderer target, Color colour)
         {
             if (target.sharedMaterial == null)
@@ -517,6 +603,8 @@ namespace LightAndShadow
 
         private void OnDestroy()
         {
+            live.Remove(this);
+
             if (rimMesh != null)
             {
                 Destroy(rimMesh);

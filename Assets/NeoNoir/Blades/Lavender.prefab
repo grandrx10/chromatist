@@ -85,7 +85,7 @@ MonoBehaviour:
   orbitHeight: 0
   bobAmplitude: 0.08
   bobFrequency: 0.5
-  followTime: 0.3
+  followTime: 0
   engageTime: 0.12
   releaseTime: 0.3
   topString: {fileID: 1919072883786867496}
@@ -93,8 +93,8 @@ MonoBehaviour:
   restPoint: {fileID: 4160895251307902189}
   drawPoint: {fileID: 3763871413744806146}
   stringWidth: 0.02
-  attacksPerSecond: 2
-  drawTime: 0.4
+  attacksPerSecond: 3
+  drawTime: 0.1
   arrow:
     damage: 10
     speed: 30
@@ -129,6 +129,7 @@ MonoBehaviour:
     vulnerabilityDuration: 3
   volleyDrawTime: 0.15
   recoilSpeed: 16
+  volleyGap: 0.15
   volleyRecover: 0.25
   bubbles:
     rate: 9

@@ -186,6 +186,7 @@ namespace LightAndShadow
             if (isBurst)
             {
                 burstRemaining -= deltaTime;
+                burstArea.center += ChaseFrame.Step(deltaTime);
             }
 
             if (vulnerable && camera != null)
@@ -207,6 +208,9 @@ namespace LightAndShadow
             {
                 Bubble bubble = bubbles[i];
                 bubble.Age += deltaTime;
+
+                // Carried along with a forced run, rising off an enemy running with the player.
+                bubble.Start += ChaseFrame.Step(deltaTime);
 
                 if (bubble.Age >= bubble.Lifetime)
                 {

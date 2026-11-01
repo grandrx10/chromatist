@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb0aa72e2c7f5654ebcc152ba6fd4b81, type: 3}
+  m_Name: KatanaParry
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.KatanaParryPattern
+  delayAfter: 1
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: e381f1e36c78a744fbbb9fba18dfebde, type: 3}
+  windUp: 0.6
+  duration: 3
+  cutsPerParry: 4
+  maxCuts: 24
+  glistenColour: {r: 0.23113209, g: 0.8462262, b: 1, a: 1}
+  glowIntensity: 1.5
+  glowPeak: 4
+  glowFadeTime: 0.2
+  gleam:
+    size: 1
+    waist: 0.12
+    time: 0.35
+    openFraction: 0.25
+    spin: 45
+    intensity: 4
+    towardCamera: 0.6
+  gleamOffset: {x: 0, y: 0, z: 0}
+  glistenSpread: 0.6
+  glistenInterval: {x: 0.4, y: 0.06}
+  glistenSize: {x: 0.4, y: 1.1}
+  windUpGlow: 3
+  windUpInterval: 0.08
+  windUpGleamSize: 1.4
+  guardUpGleamSize: 2.2
+  parryGleamSize: {x: 0.9, y: 1.6}
+  finalGleamSize: 2.5
+  cuts:
+    length: 30
+    startOffset: 1
+    bend: {x: 15, y: 120}
+    aimRadius: 5
+    groundOffset: 0.03
+    segments: 48
+    lineWidth: 0.12
+    lineColour: {r: 0, g: 0.46609667, b: 0.5849056, a: 1}
+    lineIntensity: 2.5
+    lineGrowTime: 0.1
+    lineStagger: 0.05
+    lineFadeTime: 0.3
+    wallDelay: 0.2
+    wallSpeed: 60
+    wallLength: 4
+    wallHeight: 5
+    wallColour: {r: 0, g: 0.5213506, b: 0.6603774, a: 1}
+    wallIntensity: 7
+    damage: 15
+    hitRadius: 0.6
+    shakeStrength: 0.15
+    shakeDuration: 0.25

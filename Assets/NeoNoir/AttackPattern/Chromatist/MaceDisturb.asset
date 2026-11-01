@@ -1,0 +1,149 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 760e206b4e4259c4684f5c66e2072063, type: 3}
+  m_Name: MaceDisturb
+  m_EditorClassIdentifier: Assembly-CSharp::LightAndShadow.MaceDisturbPattern
+  delayAfter: 5
+  attackAnimation: 
+  movement:
+    type: 0
+    speed: 2
+    wanderRadius: 3
+    wanderLegTime: {x: 0.6, y: 1.6}
+    stopDistance: 2.5
+  rangeLimit: 0
+  rangeApproachDistance: 15
+  rangeApproachSpeed: 3
+  bladePrefab: {fileID: 2189733109407162466, guid: d055bf2d2c6cfb5438e7fc9292a08479, type: 3}
+  glisten:
+    colour: {r: 0.6509434, g: 0, b: 0.029059397, a: 1}
+    glowIntensity: 2.5
+    glowPeak: 2
+    glowFadeTime: 0.2
+    gleam:
+      size: 1.6
+      waist: 0.12
+      time: 0.5
+      openFraction: 0.25
+      spin: 45
+      intensity: 4
+      towardCamera: 0.6
+    gleamOffset: {x: 0, y: 0, z: 0}
+    gleamSpread: {x: 0.3, y: 0.3, z: 0.3}
+    interval: {x: 0.3, y: 0.07}
+    size: {x: 0.5, y: 1.1}
+    finalSize: 2.5
+  aheadDistance: 7
+  sideScatter: 1.5
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 1
+  riseTime: 0.45
+  pauseTime: 0.8
+  swingTime: 0.14
+  holdTime: 0.5
+  raiseHeight: 2.5
+  headDistance: 1.5
+  pivotToHead: 0
+  headLift: 0.4
+  cockAngle: {x: 25, y: 60}
+  slamAngle: 150
+  tremble: 0.1
+  impact:
+    ringRadius: 5
+    ringWidth: 0.9
+    ringTime: 0.35
+    floorOffset: 0.05
+    ringIntensity: 3
+    debrisCount: 8
+    debrisSize: 0.4
+    debrisUpSpeed: {x: 5, y: 9}
+    debrisOutSpeed: {x: 2, y: 5}
+    debrisGravity: 25
+    debrisTime: 0.6
+    debrisIntensity: 1.5
+  lightIntensity: 3
+  blastRadius: 3
+  blast:
+    growTime: 0.15
+    fadeTime: 0.5
+    colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    outlineWidth: 0.15
+    outlineColour: {r: 2, g: 2, b: 2, a: 1}
+    material: {fileID: 0}
+  impactFrames: 1
+  shakeStrength: 0.8
+  shakeDuration: 0.4
+  fallCount: 10
+  aimedAtPlayer: 2
+  aimScatter: 0.6
+  fallAlong: {x: -4, y: 6}
+  fallAcross: 5
+  fallTime: {x: 0.9, y: 1.4}
+  fallArc: 6
+  fallBlastRadius: 1.5
+  fallBlastDamage: 10
+  swords:
+    art: {fileID: 5259286637870094825, guid: 8ca0c35c491da90488784693c1cb675d, type: 3}
+    size: 1
+    artRotation: {x: 0, y: 90, z: -90}
+    tintTime: 0.2
+    trailTime: 0.3
+    trailWidth: 0.35
+    speed: 22
+    radius: 0.3
+    lifetime: 3
+    hitMask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    fallRoll: 180
+    stabDepth: 0.4
+    warningOutline: 0.12
+    blastRadius: 3
+    blastDamage: 15
+    blastShake: 0.3
+    shakeDuration: 0.2
+    sphere:
+      growTime: 0.12
+      fadeTime: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+      outlineWidth: 0.15
+      outlineColour: {r: 2, g: 2, b: 2, a: 1}
+      material: {fileID: 0}
+    burst:
+      flashSize: 2
+      flashTime: 0.15
+      sparkCount: 18
+      sparkSize: 0.35
+      sparkSpeed: {x: 6, y: 14}
+      sparkLife: 0.45
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    shatter:
+      flashSize: 0.8
+      flashTime: 0.12
+      sparkCount: 8
+      sparkSize: 0.2
+      sparkSpeed: {x: 3, y: 7}
+      sparkLife: 0.3
+      colour: {r: 3, g: 0.15, b: 0.1, a: 1}
+    shrinkTime: 0.25
+  saturation: 1
+  colourIntensity: 2.5
+  swordCount: 5
+  swordHeight: 6
+  swordHeightJitter: 0.6
+  swordSpread: 8
+  swordOvershoot: 1.5
+  swordRiseTime: 0.5
+  swordHoverTime: 0.7
+  swordInterval: 1
+  swordBob: 0.15
